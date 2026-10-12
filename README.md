@@ -16,3 +16,16 @@ are now kept in the S2 component:
 
 The data-inspection notebook is available at
 `notebooks/s2/01_data_inspection.ipynb`.
+
+## S2 demo
+
+Install the dependencies and start the API:
+
+```powershell
+python -m pip install -r requirements.txt
+uvicorn backend.main:app --reload
+```
+
+Then open `http://127.0.0.1:8000/`. The S2 screen lets a user search for two
+drugs and displays the interaction decision, model score, threshold, and
+explanation. It is a research demonstration and not a clinical decision tool.
