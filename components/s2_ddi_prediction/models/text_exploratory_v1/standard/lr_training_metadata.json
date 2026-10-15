@@ -1,0 +1,24 @@
+{
+  "feature_count": 4162,
+  "parameters": {
+    "C": 1.0,
+    "class_weight": null,
+    "dual": false,
+    "fit_intercept": true,
+    "intercept_scaling": 1,
+    "l1_ratio": 0.0,
+    "max_iter": 3000,
+    "n_jobs": null,
+    "penalty": "deprecated",
+    "random_state": 42,
+    "solver": "saga",
+    "tol": 0.0001,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "converged": true,
+  "iterations": 2526,
+  "elapsed_seconds": 1323.9704427719116,
+  "text_policy": "text_exploratory_v1",
+  "feature_scaling": "No additional scaling after feature assembly"
+}
