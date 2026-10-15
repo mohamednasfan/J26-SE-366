@@ -1,0 +1,22 @@
+{
+  "features": "4096 fingerprint features + 2 availability indicators",
+  "parameters": {
+    "C": 1.0,
+    "class_weight": null,
+    "dual": false,
+    "fit_intercept": true,
+    "intercept_scaling": 1,
+    "l1_ratio": 0.0,
+    "max_iter": 3000,
+    "n_jobs": null,
+    "penalty": "deprecated",
+    "random_state": 42,
+    "solver": "saga",
+    "tol": 0.0001,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "converged": true,
+  "iterations": 1999,
+  "elapsed_seconds": 887.7130084037781
+}
