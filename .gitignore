@@ -1,0 +1,13 @@
+# Local datasets and generated artifacts
+components/s2_ddi_prediction/data/raw/*.csv
+components/s2_ddi_prediction/data/processed/*
+!components/s2_ddi_prediction/data/processed/.gitkeep
+components/s2_ddi_prediction/models/*.joblib
+components/s2_ddi_prediction/models/*.pt
+components/s2_ddi_prediction/models/*.ubj
+components/s2_ddi_prediction/evaluation/results/*
+
+# Notebook-generated files
+**/.ipynb_checkpoints/
+*.pyc
+__pycache__/
