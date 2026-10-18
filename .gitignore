@@ -13,3 +13,5 @@ components/s2_ddi_prediction/evaluation/results/*
 notebooks/s2/*.ipynb
 *.pyc
 __pycache__/
+config.bat
+node_modules
