@@ -1,0 +1,18 @@
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Generated datasets and model artifacts
+data/raw/
+data/processed/
+data/splits/
+models/
+results/
+figures/
+components/s3_side_effect_prediction/med/
+
+# Local tooling
+.env
+.vscode/
