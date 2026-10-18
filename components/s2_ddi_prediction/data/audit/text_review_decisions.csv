@@ -1,0 +1,32 @@
+drug_id,decision,reason,review_status
+DB00238,retain,General combination class; no named partner,draft_pending_supervisor_review
+DB00291,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB00330,retain,General combination class; no named partner,draft_pending_supervisor_review
+DB00377,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB00503,exclude_text,Named co-treatment partners,draft_pending_supervisor_review
+DB00762,exclude_text,Named co-treatment partners,draft_pending_supervisor_review
+DB00853,retain,Radiotherapy; not a drug-pair statement,draft_pending_supervisor_review
+DB00855,retain,Light treatment; not a drug-pair statement,draft_pending_supervisor_review
+DB01264,retain,Drug-target binding; not a DDI statement,draft_pending_supervisor_review
+DB01299,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB01606,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB02300,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB04835,retain,Protein–receptor interaction; not a DDI statement,draft_pending_supervisor_review
+DB05239,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB06603,exclude_text,Named co-treatment partners,draft_pending_supervisor_review
+DB06697,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB06708,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB08820,retain,CFTR potentiation; not a drug-pair statement,draft_pending_supervisor_review
+DB08906,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB08934,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB09027,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB09048,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB09060,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB09073,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB09183,exclude_text,Named co-treatment partners,draft_pending_supervisor_review
+DB09280,retain,No named co-treatment partner; factual review pending,draft_pending_supervisor_review
+DB09296,exclude_text,Named co-treatment partners,draft_pending_supervisor_review
+DB09343,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB11574,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB11575,exclude_text,Named co-treatment partner,draft_pending_supervisor_review
+DB11613,exclude_text,Named co-treatment partner,draft_pending_supervisor_review

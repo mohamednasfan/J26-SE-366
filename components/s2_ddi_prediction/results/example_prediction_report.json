@@ -1,0 +1,80 @@
+{
+  "drug1_id": "DB00324",
+  "drug2_id": "DB13783",
+  "model": "standard_sensitivity_logistic_regression",
+  "interaction_flag": true,
+  "model_score": 0.713367756599848,
+  "threshold": 0.42204532816730567,
+  "severity": null,
+  "explanation_status": "feature_attributions_available",
+  "intended_use": "research_prototype",
+  "explanation": {
+    "method": "Linear SHAP with independent-feature background",
+    "units": "log_odds",
+    "base_value": -0.44120270000998474,
+    "total_contribution": 1.3529997629022565,
+    "omitted_contribution": 3.4514690916211714,
+    "top_features": [
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 781,
+        "feature_value": 2,
+        "contribution": -2.442352397605819
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 60,
+        "feature_value": 1,
+        "contribution": 1.9731807819069536
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 967,
+        "feature_value": 1,
+        "contribution": 1.8320371107103097
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 1928,
+        "feature_value": 1,
+        "contribution": 1.6004731911252175
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 813,
+        "feature_value": 1,
+        "contribution": -1.5583940944003452
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 325,
+        "feature_value": 1,
+        "contribution": 1.4859545826732252
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 239,
+        "feature_value": 1,
+        "contribution": -1.4516802602267316
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 264,
+        "feature_value": 1,
+        "contribution": -1.2579081795833056
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 2021,
+        "feature_value": 2,
+        "contribution": -1.1730882953698785
+      },
+      {
+        "feature_group": "fingerprint_sum",
+        "bit_index": 1484,
+        "feature_value": 1,
+        "contribution": -1.1066917679485404
+      }
+    ]
+  }
+}

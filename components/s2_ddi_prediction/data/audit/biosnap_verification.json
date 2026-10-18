@@ -1,0 +1,17 @@
+{
+  "dataset": "BIOSNAP ChCh-Miner",
+  "checked_at_utc": "2026-10-19T12:14:16.592668+00:00",
+  "reference_url": "https://snap.stanford.edu/biodata/datasets/10001/files/ChCh-Miner_durgbank-chem-chem.tsv.gz",
+  "reference_sha256": "ba3ebe7522aad0d15742f9917780dec8329e91b8c28131ce8d9e5370a7ba7219",
+  "local_sha256": "922fdc3605d1007886af924a822ff6dbe1b9a409f5391ad4829f9ed01f5b9d26",
+  "official_unique_pairs": 48514,
+  "local_unique_pairs": 48514,
+  "only_local": 0,
+  "only_reference": 0,
+  "pair_sets_identical": true,
+  "local_label_values": [
+    "1"
+  ],
+  "verification_scope": "Unordered interaction-pair set equality",
+  "original_local_download_history": "Unknown"
+}

@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/jcsun-00/DrugBank",
+  "commit": "e42cc950f6e3e62e0a632ee4a1b0fb5f937cf126",
+  "purpose": "Candidate benchmark reference comparison",
+  "official_DrugBank_release": false
+}
