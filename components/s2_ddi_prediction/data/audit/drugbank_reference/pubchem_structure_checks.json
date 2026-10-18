@@ -1,0 +1,67 @@
+[
+  {
+    "drug_id": "DB00515",
+    "request_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/DB00515/property/MolecularFormula,InChIKey/JSON",
+    "checked_at_utc": "2026-10-19T12:19:31.106431+00:00",
+    "matches": [
+      {
+        "CID": 441203,
+        "MolecularFormula": "Cl2H6N2Pt+2",
+        "InChIKey": "BSJGASKRWFKGMV-UHFFFAOYSA-L"
+      }
+    ],
+    "status": "single_match"
+  },
+  {
+    "drug_id": "DB00526",
+    "request_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/DB00526/property/MolecularFormula,InChIKey/JSON",
+    "checked_at_utc": "2026-10-19T12:19:32.441721+00:00",
+    "matches": [
+      {
+        "CID": 6857599,
+        "MolecularFormula": "C8H16N2O4Pt+2",
+        "InChIKey": "ZROHGHOFXNOHSO-BNTLRKBRSA-N"
+      }
+    ],
+    "status": "single_match"
+  },
+  {
+    "drug_id": "DB00958",
+    "request_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/DB00958/property/MolecularFormula,InChIKey/JSON",
+    "checked_at_utc": "2026-10-19T12:19:34.226576+00:00",
+    "matches": [
+      {
+        "CID": 5352133,
+        "MolecularFormula": "C6H14N2O4Pt+2",
+        "InChIKey": "OLESAACUTLOWQZ-UHFFFAOYSA-N"
+      }
+    ],
+    "status": "single_match"
+  },
+  {
+    "drug_id": "DB11630",
+    "request_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/DB11630/property/MolecularFormula,InChIKey/JSON",
+    "checked_at_utc": "2026-10-19T12:19:36.136206+00:00",
+    "matches": [
+      {
+        "CID": 60751,
+        "MolecularFormula": "C44H32N4O4",
+        "InChIKey": "LYPFDBRUNKHDGX-UHFFFAOYSA-N"
+      }
+    ],
+    "status": "single_match"
+  },
+  {
+    "drug_id": "DB13145",
+    "request_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/DB13145/property/MolecularFormula,InChIKey/JSON",
+    "checked_at_utc": "2026-10-19T12:19:37.972743+00:00",
+    "matches": [
+      {
+        "CID": 9548889,
+        "MolecularFormula": "C2H10N2O3Pt+2",
+        "InChIKey": "NOSYGQGJJZNNMA-UHFFFAOYSA-N"
+      }
+    ],
+    "status": "single_match"
+  }
+]

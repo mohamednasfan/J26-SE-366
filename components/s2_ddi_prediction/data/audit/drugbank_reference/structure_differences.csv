@@ -1,0 +1,6 @@
+drug_id,status,local_smiles,reference_smiles
+DB00515,different_canonical_structure,[H][N]([H])([H])[Pt](Cl)(Cl)[N]([H])([H])[H],N[Pt](N)(Cl)Cl
+DB00526,different_canonical_structure,[H][N]1([H])[C@@H]2CCCC[C@H]2[N]([H])([H])[Pt]11OC(=O)C(=O)O1,O=C1O[Pt]2(N[C@@H]3CCCC[C@H]3N2)OC1=O
+DB00958,different_canonical_structure,[H][N]([H])([H])[Pt]1(OC(=O)C2(CCC2)C(=O)O1)[N]([H])([H])[H],N[Pt]1(N)OC(=O)C2(CCC2)C(=O)O1
+DB11630,unparseable_structure,OC1=CC=CC(=C1)C-1=C2\CCC(=N2)\C(=C2/N\C(\C=C2)=C(/C2=N/C(/C=C2)=C(\C2=CC=C\-1N2)C1=CC(O)=CC=C1)C1=CC(O)=CC=C1)\C1=CC(O)=CC=C1,Oc1cccc(-c2c3nc(c(-c4cccc(O)c4)c4ccc([nH]4)c(-c4cccc(O)c4)c4nc(c(-c5cccc(O)c5)c5ccc2[nH]5)CC4)C=C3)c1
+DB13145,different_canonical_structure,[H][N]([H])([H])[Pt]1(OCC(=O)O1)[N]([H])([H])[H],N[Pt]1(N)OCC(=O)O1

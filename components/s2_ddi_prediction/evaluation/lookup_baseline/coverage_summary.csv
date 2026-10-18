@@ -1,0 +1,3 @@
+experiment,test_pairs,known_interaction_results,unknown_results,coverage
+standard,58708,0,58708,0.0
+cold_start,81429,0,81429,0.0

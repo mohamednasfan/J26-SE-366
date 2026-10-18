@@ -1,0 +1,12 @@
+{
+  "model": "XGBoost",
+  "fold": 5,
+  "threshold": 0.4569046199321747,
+  "boosting_rounds": 1000,
+  "ROC_AUC": 0.8903016326023176,
+  "average_precision": 0.8803468820997287,
+  "precision": 0.7644384523734872,
+  "recall": 0.8879379415835094,
+  "F1": 0.8215729882733522,
+  "elapsed_seconds": 33.08461332321167
+}

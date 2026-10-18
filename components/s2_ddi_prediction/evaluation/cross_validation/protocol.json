@@ -1,0 +1,10 @@
+{
+  "status": "exploratory_internal_cross_validation",
+  "source": "C:\\research\\MedSafeAI\\components\\s2_ddi_prediction\\data\\processed\\structure_sensitivity\\standard\\train_pairs.csv",
+  "source_sha256": "f7d643528f3a77c2815631414f24b373959e51c49fe383bd9d646e6a71c49f9d",
+  "n_splits": 5,
+  "random_seed": 42,
+  "split_unit": "unique unordered drug pair",
+  "setting": "standard pair split; drugs may occur across folds",
+  "external_validation_and_test_included": false
+}

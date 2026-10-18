@@ -1,0 +1,7 @@
+{
+  "selected_threshold": 0.5143652558326721,
+  "selection_rule": "Maximum cold-start validation F1",
+  "protocol": "one_unseen_drug",
+  "best_epoch": 9,
+  "test_set_evaluated": false
+}

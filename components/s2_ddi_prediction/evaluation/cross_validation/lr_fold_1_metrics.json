@@ -1,0 +1,12 @@
+{
+  "model": "Logistic Regression",
+  "fold": 1,
+  "threshold": 0.4336501821003816,
+  "ROC_AUC": 0.8789415646835277,
+  "average_precision": 0.8604825571753207,
+  "precision": 0.7585388698095535,
+  "recall": 0.8848423046106781,
+  "F1": 0.8168370091447015,
+  "converged": true,
+  "elapsed_seconds": 333.966778755188
+}

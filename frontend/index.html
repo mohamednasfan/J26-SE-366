@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b4f6c">
+  <title>MedSafeAI | Drug Interaction Check</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div class="brand-mark" aria-hidden="true">+</div>
+      <div>
+        <p class="eyebrow">MedSafeAI · S2 Drug Interaction Model</p>
+        <h1>Drug interaction check</h1>
+        <p class="hero-copy">Select two medicines to estimate whether the model detects a possible interaction.</p>
+      </div>
+    </header>
+
+    <section class="card input-card" aria-labelledby="input-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 1</p>
+          <h2 id="input-title">Choose two drugs</h2>
+        </div>
+        <span class="status-dot"><span></span> Model ready</span>
+      </div>
+
+      <form id="prediction-form">
+        <div class="drug-grid">
+          <label class="drug-field">
+            <span>First drug</span>
+            <div class="search-box">
+              <input id="drug1-search" type="search" placeholder="Search by name..." autocomplete="off" required>
+              <input id="drug1-id" type="hidden">
+              <div id="drug1-results" class="suggestions" role="listbox"></div>
+            </div>
+            <span id="drug1-selected" class="selected-drug">No drug selected</span>
+          </label>
+
+          <div class="versus" aria-hidden="true">+</div>
+
+          <label class="drug-field">
+            <span>Second drug</span>
+            <div class="search-box">
+              <input id="drug2-search" type="search" placeholder="Search by name..." autocomplete="off" required>
+              <input id="drug2-id" type="hidden">
+              <div id="drug2-results" class="suggestions" role="listbox"></div>
+            </div>
+            <span id="drug2-selected" class="selected-drug">No drug selected</span>
+          </label>
+        </div>
+        <p id="form-error" class="error-message" role="alert"></p>
+        <button id="check-button" class="primary-button" type="submit">
+          <span>Check interaction</span><span aria-hidden="true">→</span>
+        </button>
+      </form>
+    </section>
+
+    <section id="result-card" class="card result-card hidden" aria-live="polite" aria-labelledby="result-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 2 · Prediction result</p>
+          <h2 id="result-title">Analysis complete</h2>
+        </div>
+        <span id="result-badge" class="result-badge"></span>
+      </div>
+
+      <div class="result-summary">
+        <div id="result-icon" class="result-icon"></div>
+        <div>
+          <h3 id="result-heading"></h3>
+          <p id="result-description"></p>
+        </div>
+      </div>
+
+      <div class="score-panel">
+        <div class="score-label"><span>Model score</span><strong id="score-value"></strong></div>
+        <div class="progress-track"><div id="score-bar" class="progress-bar"></div></div>
+        <div class="score-scale"><span>0 · lower signal</span><span>1 · higher signal</span></div>
+        <p id="threshold-text"></p>
+      </div>
+
+      <details class="explanation">
+        <summary>View model explanation</summary>
+        <p id="explanation-summary"></p>
+        <div id="feature-list" class="feature-list"></div>
+      </details>
+      <p id="notice" class="notice"></p>
+    </section>
+
+    <footer>
+      <strong>Note:</strong> Results are model estimates and should be verified with a qualified healthcare professional.
+    </footer>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

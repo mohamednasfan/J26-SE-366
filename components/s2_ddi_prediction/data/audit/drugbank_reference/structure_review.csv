@@ -1,0 +1,11 @@
+drug_id,source,parseable,formula,formal_charge
+DB00515,local,True,H6Cl2N2Pt,0.0
+DB00515,research_reference,True,H4Cl2N2Pt,0.0
+DB00526,local,True,C8H14N2O4Pt,0.0
+DB00526,research_reference,True,C8H12N2O4Pt,0.0
+DB00958,local,True,C6H12N2O4Pt,0.0
+DB00958,research_reference,True,C6H10N2O4Pt,0.0
+DB11630,local,False,,
+DB11630,research_reference,True,C44H32N4O4,0.0
+DB13145,local,True,C2H8N2O3Pt,0.0
+DB13145,research_reference,True,C2H6N2O3Pt,0.0

@@ -1,0 +1,7 @@
+experiment,split,total_pairs,affected_pairs,affected_percent
+standard,train,274810,847,0.308212947127106
+standard,validation,58888,185,0.31415568536883576
+standard,test,58888,180,0.30566499116967805
+cold_start,train,190916,799,0.41850866349598775
+cold_start,validation,84628,202,0.2386916859668195
+cold_start,test,81640,211,0.2584517393434591

@@ -1,0 +1,15 @@
+{
+  "drug_id": "DB00331",
+  "display_name": "Metformin",
+  "pubchem_cid": 4091,
+  "mapping_basis": "Dataset SMILES and PubChem 4091 Standard InChI agree",
+  "source": "PubChem",
+  "selection_label": "Metformin [DB00331]",
+  "checked_at_utc": "2026-10-19T13:48:31.938881+00:00",
+  "dataset_inchi": "InChI=1S/C4H11N5/c1-9(2)4(7)8-3(5)6/h1-2H3,(H5,5,6,7,8)",
+  "pubchem_4091_inchi": "InChI=1S/C4H11N5/c1-9(2)4(7)8-3(5)6/h1-2H3,(H5,5,6,7,8)",
+  "other_lookup_cid": 152743144,
+  "other_lookup_title": "[14C]metformin",
+  "decision": "Accept name mapping based on Standard InChI agreement",
+  "scope": "Name mapping only; no clinical or formulation verification"
+}
