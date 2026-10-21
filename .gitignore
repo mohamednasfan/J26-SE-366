@@ -12,6 +12,9 @@ models/
 results/
 figures/
 components/s3_side_effect_prediction/med/
+components/s3_side_effect_prediction/data/
+components/s3_side_effect_prediction/**/*.joblib
+components/s3_side_effect_prediction/**/*.npy
 
 # Local tooling
 .env
