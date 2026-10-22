@@ -27,12 +27,23 @@ def benchmark_results():
                 continue
             results[name]={
                 'n_total':entry.get('n_total'), 'n_succeeded':entry.get('n_succeeded'),
-                'coverage':entry.get('coverage'),'thesis_eligible':entry.get('thesis_eligible') is True,
-                'metrics':entry.get('metrics') if entry.get('thesis_eligible') is True else None,
-                'timing':entry.get('timing'),'error_count':entry.get('error_count',0)
+                'coverage':entry.get('coverage'),
+                'ocr_eligible':entry.get('ocr_eligible') is True,
+                'thesis_eligible':entry.get('thesis_eligible') is True,
+                'dose_alert_evaluated_n':entry.get('dose_alert_evaluated_n',0),
+                'age_alert_evaluated_n':entry.get('age_alert_evaluated_n',0),
+                # Aggregate-only metrics remain visible for synthetic development,
+                # but the caller must distinguish label_policy and evidence gates.
+                'metrics':entry.get('metrics'),
+                'timing':entry.get('timing'),
+                'error_count':entry.get('error_count',0)
             }
-        return {'status':'HUMAN_VERIFIED_TEST' if document.get('label_policy')=='HUMAN_VERIFIED_TEST_ONLY'
-                else 'DEVELOPMENT_ONLY','engines':results,
+        independently_labeled=document.get('label_policy')=='HUMAN_VERIFIED_TEST_ONLY'
+        full_ocr=bool(results) and all(entry['ocr_eligible'] for entry in results.values())
+        status='HUMAN_VERIFIED_TEST' if independently_labeled and full_ocr else (
+            'INCOMPLETE_TEST' if independently_labeled else 'DEVELOPMENT_ONLY')
+        return {'status':status,'engines':results,
+                'preprocessing_mode':document.get('preprocessing_mode','none'),
                 'dataset_size':document.get('dataset_size'),'generated_utc':document.get('generated_utc'),
                 'note':'Individual images, transcripts, filenames and predictions are intentionally not exposed.'}
     except (OSError,ValueError,TypeError,KeyError):
