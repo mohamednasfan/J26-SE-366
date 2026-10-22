@@ -30,21 +30,28 @@ def status():
     except ImportError:
         device = 'not installed'
         torch_installed = False
+    checkpoint=checkpoint_status()
+    craft_available=importlib.util.find_spec('easyocr') is not None
+    transformers_available=importlib.util.find_spec('transformers') is not None
+    trocr_ready=bool(checkpoint.get('ready_for_load') and craft_available and transformers_available and torch_installed)
     return {
         'default': 'tesseract', 'detector': 'Tesseract full-page OCR',
         'benchmark_engines': {
             'tesseract': tesseract_executable() is not None,
             'easyocr': importlib.util.find_spec('easyocr') is not None,
-            'paddleocr': importlib.util.find_spec('paddleocr') is not None,
-            'trocr': importlib.util.find_spec('transformers') is not None,
+            'paddleocr': importlib.util.find_spec('paddleocr') is not None and importlib.util.find_spec('paddle') is not None,
+            'trocr': trocr_ready,
+            'craft_trocr': trocr_ready,
         },
-        'recognizer': MODEL_ID, 'notebook44_checkpoint':checkpoint_status(), 'torch_installed': torch_installed,
-        'craft_installed': importlib.util.find_spec('easyocr') is not None,
-        'transformers_installed': importlib.util.find_spec('transformers') is not None,
+        'recognizer': str(configured_checkpoint() or 'NOTEBOOK44_CHECKPOINT_NOT_CONFIGURED'),
+        'notebook44_checkpoint':checkpoint, 'torch_installed': torch_installed,
+        'craft_installed': craft_available,
+        'transformers_installed': transformers_available,
         'tesseract_installed': tesseract_executable() is not None,
         'device': device,
         'weights_loaded': _recognizer.cache_info().currsize > 0,
-        'model_download_required_on_first_use': False,
+        'checkpoint_downloaded_automatically': False,
+        'craft_detector_weights_may_download_at_first_use': craft_available,
         'clinical_accuracy_validated': False,
     }
 
