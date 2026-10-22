@@ -6,6 +6,8 @@ success-shaped fallback when no trained model has been configured.
 
 from __future__ import annotations
 
+import utils.transport
+import utils.session
 import os
 from pathlib import Path
 
