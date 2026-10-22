@@ -25,7 +25,7 @@ export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
   <div className="review-grid">
    <section className="surface preview-surface"><div className="section-top"><div><h3>Original prescription</h3><p>Source image for manual cross-checking</p></div><Eye size={19} className="muted-icon"/></div>
      <div className="preview-frame"><img src={detail.image_url} alt="Uploaded prescription; compare against OCR text" /></div>
-     <div className="preview-footer"><span>OCR: <strong>{formatEngine(detail.engine)}</strong>{detail.ocr?.processing_seconds!=null?' · '+detail.ocr.processing_seconds+' seconds':''}</span><Badge tone="amber">Image text unverified</Badge></div>
+     <div className="preview-footer"><span>OCR: <strong>{formatEngine(detail.engine)}</strong>{detail.ocr?.processing_seconds!=null?' · '+detail.ocr.processing_seconds+' seconds':''}{detail.ocr?.preprocessing?.mode&&detail.ocr.preprocessing.mode!=='none'?' · '+detail.ocr.preprocessing.mode.replaceAll('_',' '):''}</span><Badge tone="amber">Image text unverified</Badge></div>
    </section>
    <section className="surface findings-surface"><div className="tabs" role="tablist" aria-label="Prescription review sections">
     <button role="tab" aria-selected={tab==='transcription'} className={tab==='transcription'?'active':''} onClick={()=>setTab('transcription')}>Transcription</button>
