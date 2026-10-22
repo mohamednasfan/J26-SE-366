@@ -68,8 +68,6 @@ def read_manifest(manifest: Path, *, require_human=True):
         })
     if not rows:
         raise ValueError("No labeled image rows in manifest")
-    if require_human and len(rows) < 50:
-        raise ValueError("Independent thesis evaluation requires at least 50 held-out verified images")
     ids = [row["image_id"] for row in rows]
     hashes = [row["sha256"] for row in rows]
     if len(ids) != len(set(ids)) or len(hashes) != len(set(hashes)):
@@ -224,7 +222,7 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
             "dose_alert_evaluated_n": dose_coverage,
             "age_alert_evaluated_n": age_coverage,
             "thesis_eligible": bool(
-                complete and require_human
+                complete and require_human and len(rows) >= 50
                 and dose_coverage == len(rows) and age_coverage == len(rows)
                 and metrics["alerts"]["tp"] + metrics["alerts"]["fn"] > 0
                 and metrics["alerts"]["tn"] + metrics["alerts"]["fp"] > 0
