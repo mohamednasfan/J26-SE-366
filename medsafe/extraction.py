@@ -131,16 +131,17 @@ def extract_unlabeled_candidates(text: str) -> list[dict[str, Any]]:
         if not m:
             continue
         tail=m.group('tail')
+        prn=bool(re.search(r'\b(?:prn|as needed|when required)\b',line,re.I))
         # Parse medicine before a strength/frequency token when the OCR happens
         # to merge the medicine and those fields into a single line.
         med=m.group('med').strip()
         st=_UNLABELED_STRENGTH.findall(line)
         freq=_UNLABELED_FREQ.findall(tail)
         fval=''
-        if len(freq)==1:
+        if len(freq)==1 and not prn:
             fval=next((v for v in freq[0] if v),'')
         schedules=_UNLABELED_SCHEDULE.findall(tail)
-        if len(schedules)==1 and not freq:
+        if len(schedules)==1 and not freq and not prn:
             fval={1:'once daily',2:'twice daily',3:'three times daily'}.get(sum(map(int,schedules[0])),'')
         # A dose strength is not the *prescribed administered dose*.
         evidence=[f'Medicine: {med}']
@@ -159,6 +160,11 @@ def extract_unlabeled_candidates(text: str) -> list[dict[str, Any]]:
             extracted['candidate_flags'].append('AMBIGUOUS_STRENGTH_MENTIONS')
         if len(freq)>1 or len(schedules)>1 or (freq and schedules):
             extracted['candidate_flags'].append('AMBIGUOUS_FREQUENCY_MENTIONS')
+            extracted['fields']['frequency']=''
+        if prn:
+            extracted['candidate_flags'].append('AS_NEEDED_FREQUENCY_UNRESOLVED')
+            extracted['fields']['frequency']=''
+        extracted['raw_source_line']=line
         results.append(extracted)
     if results:
         return results

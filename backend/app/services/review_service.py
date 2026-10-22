@@ -28,6 +28,13 @@ def assess_report(report):
         rule=match_rule(rules,ingredient=fields.get('medicine',''),product_identifier=fields.get('product_identifier',''),
                         route=fields.get('route',''),indication=fields.get('indication',''),
                         population=fields.get('population','')) if rules else None
+        # Never screen against a possibly contradictory or incomplete transcription.
+        # Even a matching label must abstain when extraction has a blocking issue.
+        blocked=bool(m['extraction'].get('candidate_only')) or any(
+            item.get('severity')=='BLOCK' for item in m.get('issues',[])
+        )
+        if blocked:
+            rule=None
         parsed=number_and_unit(fields.get('dose',''))
         freq=parse_frequency(fields.get('frequency',''))
         weight=parse_weight(fields.get('weight',''))
@@ -50,6 +57,12 @@ def assess_report(report):
                 age_check={'status':'REVIEW_AGE_RANGE_FLAG' if not lo<=age<=hi else 'WITHIN_REVIEWED_AGE_RANGE_NOT_PROOF_OF_SAFETY',
                            'source_url':rule['source_url'],'min_age_years':lo,'max_age_years':hi,
                            'note':'Age-range screen only; not an individual clinical dosing recommendation'}
+        if blocked:
+            age_check={'status':'UNABLE_TO_VALIDATE',
+                       'reason':'Prescription contains unresolved or conflicting fields; verify transcription first'}
+            result={**result, 'reason':'Prescription contains unresolved or conflicting fields; verify transcription first'}
+            m['reviewed_dose_rule']=result
+            m['dose_validation_available']=False
         m['reviewed_age_rule']=age_check
         from medsafe.validation import finding
         alerts=[]
