@@ -49,10 +49,8 @@ def models():return ocr_status()
 
 @app.get('/api/stats')
 def stats():
-    items=storage.rows()
-    return {'total':len(items),'reviewed':sum(bool(r['reviewer_confirmed']) for r in items),
-            'pending':sum(not r['reviewer_confirmed'] for r in items),
-            'research_status':'No validated independent OCR accuracy or approved drug-dose rule collection installed'}
+    return {**storage.counts(),
+            'research_status':'Metrics require independent human-reviewed test evidence; clinical approval is not provided'}
 
 @app.post('/api/prescriptions')
 async def upload(file:UploadFile=File(...),
@@ -75,8 +73,10 @@ async def upload(file:UploadFile=File(...),
     except ValueError as e:raise HTTPException(422,str(e)) from e
     ocr['preprocessing']=prep
     ocr['processing_seconds']=round(time.perf_counter()-started,4)
-    pid=storage.create(name,ext,engine,ocr)
-    (storage.DATA/(pid+ext)).write_bytes(data)
+    try:
+        pid=storage.create_with_image(name,ext,engine,ocr,data)
+    except (OSError,ValueError) as exc:
+        raise HTTPException(500,'Unable to persist prescription securely') from exc
     return {'id':pid,'filename':name,'status':'REVIEW_REQUIRED','ocr':ocr,
             'image_url':f'/api/prescriptions/{pid}/image','processing_seconds':ocr['processing_seconds'],
             'clinical_clearance':False,'can_auto_dispense':False}
@@ -97,7 +97,10 @@ async def upload_batch(files:list[UploadFile]=File(...),
     return {'items':results,'count':len(results),'clinical_clearance':False,'requires_professional_review':True}
 
 @app.get('/api/prescriptions')
-def history():return {'items':storage.rows()}
+def history(limit:int=Query(150,ge=1,le=500),
+            offset:int=Query(0,ge=0)):
+    return {'items':storage.rows(limit=limit,offset=offset),
+            'total':storage.counts()['total'],'limit':limit,'offset':offset}
 
 @app.get('/api/prescriptions/{pid}')
 def detail(pid:str):
