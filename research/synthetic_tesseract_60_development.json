@@ -1,0 +1,74 @@
+{
+  "schema": "medsafe.synthetic_tesseract_development.v1",
+  "measured_on": "2026-10-22",
+  "dataset": "MedSafe_AI_Synthetic_400 test split (60 fictional generated prescriptions)",
+  "manifest_sha256": "5066d13d58b87bae9ed74c7e8ab628f5a51e8af65c155c255ab18d2f2d61c3ec",
+  "human_verified": false,
+  "clinical_evidence": false,
+  "model": "Tesseract --psm 6 with autocontrast grayscale and label normalization",
+  "images_tested": 60,
+  "ocr": {
+    "CER_micro": 0.015122559202326547,
+    "WER_micro": 0.06435079726651481
+  },
+  "field_exact": {
+    "medicine": {
+      "correct": 40,
+      "total": 60
+    },
+    "dose": {
+      "correct": 59,
+      "total": 60
+    },
+    "frequency": {
+      "correct": 60,
+      "total": 60
+    },
+    "age": {
+      "correct": 60,
+      "total": 60
+    },
+    "route": {
+      "correct": 56,
+      "total": 60
+    },
+    "weight": {
+      "correct": 59,
+      "total": 60
+    }
+  },
+  "fictional_dose_flags": {
+    "coverage": 40,
+    "total": 60,
+    "abstained": 20,
+    "tp": 16,
+    "fp": 0,
+    "fn": 0,
+    "tn": 24,
+    "all_gold_positive": 25,
+    "all_gold_negative": 35
+  },
+  "fictional_age_flags": {
+    "coverage": 40,
+    "total": 60,
+    "abstained": 20,
+    "tp": 18,
+    "fp": 0,
+    "fn": 0,
+    "tn": 22,
+    "all_gold_positive": 28,
+    "all_gold_negative": 32
+  },
+  "latency": {
+    "mean_seconds": 0.218801315183282,
+    "p95_seconds": 0.24566699099887046,
+    "max_seconds": 0.300478662000387,
+    "scope": "Local Tesseract OCR + parsing, not full hosted GPU application"
+  },
+  "limitations": [
+    "Standalone research reimplementation of the Tesseract baseline and conservative field/synthetic flag extraction; full application integration not verified in this local experiment",
+    "All thresholds are fictional and all labels generated, not independently clinician-adjudicated",
+    "Precision and recall calculated only on covered cases; abstentions are never scored as correct negatives",
+    "Cannot claim thesis clinical targets or real checkpoint inference from this development data"
+  ]
+}
