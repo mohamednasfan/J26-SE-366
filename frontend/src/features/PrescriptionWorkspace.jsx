@@ -31,7 +31,7 @@ export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
      {detail.ocr?.preprocessing?.quality?.warnings?.length>0&&<div className="image-quality-flags">
       <strong>Image-quality diagnostics (not clinical confidence)</strong>
       {detail.ocr.preprocessing.quality.warnings.map((warning,i)=><span key={i}>{warning.replaceAll('_',' ')}</span>)}
-     </div>
+     </div>}
      <div className="preview-footer"><span>OCR: <strong>{formatEngine(detail.engine)}</strong>{detail.ocr?.processing_seconds!=null?' · '+detail.ocr.processing_seconds+' seconds':''}{detail.ocr?.preprocessing?.mode&&detail.ocr.preprocessing.mode!=='none'?' · '+detail.ocr.preprocessing.mode.replaceAll('_',' '):''}</span><Badge tone="amber">Image text unverified</Badge></div>
    </section>
    <section className="surface findings-surface"><div className="tabs" role="tablist" aria-label="Prescription review sections">
