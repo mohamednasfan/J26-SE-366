@@ -1,3 +1,7 @@
+> **Current application:** Start with [README_START_HERE.md](README_START_HERE.md). This file describes historical research APIs and the earlier Notebook 44 integration. The supported product is the modular React/FastAPI application launched through `start_product.py`, `start_windows.bat`, `start_linux_mac.sh`, or Docker Compose. The latest image preprocessing, atomic storage and independent OCR evaluation are documented in the start guide. Historical API research notes below are preserved for reproducibility.
+
+---
+
 # MedSafe-AI — application with fine-tuned TrOCR integration (v0.2)
 
 **This is the working application source, not another research notebook or comparison report.**

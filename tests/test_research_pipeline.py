@@ -42,7 +42,10 @@ def test_age_and_latency_metrics_and_acceptance_gate(tmp_path):
     assert result['metrics']['age_alerts']['accuracy']==1
     assert result['criteria']['age_accuracy_85pct'] is True
     assert result['criteria']['processing_p95_max_10s'] is True
-    assert result['thesis_targets_met'] is True
+    # A single correct case is a smoke test, not sufficient thesis evidence.
+    assert result['criteria']['minimum_independent_test_images_50'] is False
+    assert result['criteria']['overdose_class_support'] is False
+    assert result['thesis_targets_met'] is False
 
 def test_missing_age_and_timing_fail_criteria(tmp_path):
     row=dict(image_id='one',split='test',reviewer_id='reviewer',human_verified=True,
