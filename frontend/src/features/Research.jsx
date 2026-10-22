@@ -1,4 +1,5 @@
 import React from 'react';
+import OCRComparison from './OCRComparison.jsx';
 import { Activity, BookOpen, BrainCircuit, CheckCircle2, Database, Gauge, ShieldAlert, Target } from 'lucide-react';
 import {Badge,Notice} from '../components/Status.jsx';
 const titles={tesseract:['Tesseract','OCR baseline'],easyocr:['EasyOCR','Neural OCR recognizer'],paddleocr:['PaddleOCR','Document understanding'],craft_trocr:['CRAFT + TrOCR','Notebook 44 handwriting recognition']};
@@ -12,6 +13,7 @@ export default function Research({research={},models={},historical={},benchmarks
    <div className="research-banner"><div className="research-banner-icon"><BrainCircuit size={27}/></div>
     <div><h2>Reproducible OCR evaluation</h2><p>Four engines, shared held-out images and human-verified references. Model installation does not imply validated accuracy.</p></div>
     <Badge tone="amber">Independent results required</Badge></div>
+   <OCRComparison/>
    {historical.n_aligned_images>0&&<section className="surface"><div className="section-top"><div><h3>Archived four-engine comparison</h3><p>{historical.n_aligned_images} matching original-variant medicine-word images · earlier experiment, not final trained checkpoint</p></div><Badge tone="amber">Historical baseline</Badge></div>
     <div className="table-scroll"><table className="data-table"><thead><tr><th>OCR engine</th><th>Character error</th><th>Word error</th><th>Medicine accuracy</th></tr></thead>
     <tbody>{Object.entries(historical.engines||{}).map(([name,metrics])=><tr key={name}><td><strong>{name==='trocr_historical'?'TrOCR (historical)':name.charAt(0).toUpperCase()+name.slice(1)}</strong></td>
