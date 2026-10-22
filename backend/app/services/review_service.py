@@ -25,7 +25,7 @@ def assess_report(report):
         m['reviewed_dose_rule']=result
         m['dose_validation_available']=result['status']!='NOT_EVALUATED'
         age_text=fields.get('age','')
-        from .extraction import parse_age
+        from medsafe.extraction import parse_age
         age=parse_age(age_text)
         age_check={'status':'UNABLE_TO_VALIDATE','reason':'No matched source-reviewed age interval and/or verified age'}
         if rule is not None and age is not None and type(rule.get('min_age_years')) in (int,float) and type(rule.get('max_age_years')) in (int,float):
@@ -35,7 +35,7 @@ def assess_report(report):
                            'source_url':rule['source_url'],'min_age_years':lo,'max_age_years':hi,
                            'note':'Age-range screen only; not an individual clinical dosing recommendation'}
         m['reviewed_age_rule']=age_check
-        from .validation import finding
+        from medsafe.validation import finding
         index=report['medications'].index(m)+1
         alerts=[]
         if result['status']=='REVIEW_THRESHOLD_EXCEEDED':
