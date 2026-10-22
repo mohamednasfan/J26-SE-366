@@ -177,9 +177,11 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
                 if require_human:
                     dose_flag, age_flag = _reviewed_screen(text)
                 else:
+                    # One synthetic rule belongs to one medicine only. Never
+                    # project the first rule onto a multi-medicine prescription.
                     dose_flag, age_flag = _synthetic_screen(
-                        blocks[0]["fields"] if blocks else {}, item.get("synthetic_rule")
-                    )
+                        blocks[0]["fields"], item.get("synthetic_rule")
+                    ) if len(blocks)==1 else (None, None)
                 elapsed = time.perf_counter() - start
                 rec = {
                     "gold": item["gold"], "predicted": extracted,
