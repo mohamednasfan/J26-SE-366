@@ -9,6 +9,8 @@ from io import BytesIO
 import os
 from pathlib import Path
 from PIL import Image, ImageOps
+import base64
+import requests
 from .ocr import decode_image, _tesseract, tesseract_executable
 
 from .trocr import configured_checkpoint, checkpoint_status, _load_model
@@ -19,6 +21,46 @@ MODEL_LOAD_ID = MODEL_ID
 
 class OCRUnavailable(RuntimeError):
     pass
+
+def _load_local_env():
+    root = Path(__file__).resolve().parent.parent
+    env_path = root / '.env'
+    if not env_path.is_file(): return
+    for line in env_path.read_text(encoding='utf-8').splitlines():
+        line=line.strip()
+        if not line or line.startswith('#') or '=' not in line: continue
+        key,value=line.split('=',1); key=key.strip(); value=value.strip().strip('"').strip("'")
+        if key and value and not os.getenv(key): os.environ[key]=value
+
+_load_local_env()
+
+def _gemini_model():
+    return os.getenv('GEMINI_MODEL', 'gemini-flash-latest')
+
+def _gemini(image: Image.Image):
+    key=os.getenv('GEMINI_API_KEY','').strip()
+    if not key:
+        raise OCRUnavailable('Gemini demo OCR is not configured. Add GEMINI_API_KEY to the local .env file.')
+    buf=BytesIO(); image.convert('RGB').save(buf,format='PNG')
+    body={'contents':[{'role':'user','parts':[
+        {'text':('Read this prescription image and return only the visible text in reading order. '
+                 'Preserve names, numbers, units, frequency, age, route, and line breaks. '
+                 'Do not infer or correct unclear text. Prefix uncertain text with [uncertain].')},
+        {'inline_data':{'mime_type':'image/png','data':base64.b64encode(buf.getvalue()).decode('ascii')}}
+    ]}], 'generationConfig':{'temperature':0,'maxOutputTokens':2048}}
+    url=f'https://generativelanguage.googleapis.com/v1beta/models/{_gemini_model()}:generateContent'
+    try:
+        response=requests.post(url,headers={'x-goog-api-key':key,'Content-Type':'application/json'},json=body,timeout=60)
+        response.raise_for_status(); payload=response.json()
+        text=''.join(part.get('text','') for part in payload.get('candidates',[{}])[0].get('content',{}).get('parts',[])).strip()
+    except requests.RequestException as exc:
+        raise OCRUnavailable('Gemini demo OCR request failed: '+str(exc)[:240]) from exc
+    except (ValueError,IndexError,KeyError,TypeError) as exc:
+        raise OCRUnavailable('Gemini returned an unreadable response.') from exc
+    if not text: raise OCRUnavailable('Gemini returned no readable text.')
+    return {'text':text,'engine':'gemini_demo','regions':[],'boxes':[],
+            'warnings':['GEMINI_EXTERNAL_PROCESSING','GEMINI_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
+            'confidence':None,'width':image.width,'height':image.height}
 
 
 def status():
@@ -38,6 +80,7 @@ def status():
         'default': 'tesseract', 'detector': 'Tesseract full-page OCR',
         'benchmark_engines': {
             'tesseract': tesseract_executable() is not None,
+            'gemini_demo': bool(os.getenv('GEMINI_API_KEY')),
             'easyocr': importlib.util.find_spec('easyocr') is not None,
             'paddleocr': importlib.util.find_spec('paddleocr') is not None and importlib.util.find_spec('paddle') is not None,
             'trocr': trocr_ready,
@@ -53,6 +96,7 @@ def status():
         'checkpoint_downloaded_automatically': False,
         'craft_detector_weights_may_download_at_first_use': craft_available,
         'clinical_accuracy_validated': False,
+        'gemini_model': _gemini_model(),
     }
 
 
@@ -243,6 +287,7 @@ def _paddle_regions(pages):
 
 def recognize(data:bytes,engine='craft_trocr'):
     image=decode_image(data)
+    if engine=='gemini_demo': return _gemini(image)
     if engine=='tesseract':
         raw=_tesseract(image)
         regions=raw.get('token_regions',[])
@@ -290,7 +335,7 @@ def recognize(data:bytes,engine='craft_trocr'):
             'warnings':['PADDLEOCR_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
             'confidence':None,'width':image.width,'height':image.height,
         }
-    if engine!='craft_trocr':raise ValueError('Unsupported engine. Choose craft_trocr, easyocr, paddleocr, or tesseract.')
+    if engine!='craft_trocr':raise ValueError('Unsupported engine. Choose craft_trocr, easyocr, paddleocr, tesseract, or gemini_demo.')
     # Never return an apparently successful empty OCR result when the
     # required fine-tuned recognition checkpoint is not installed.
     if not checkpoint_status().get('ready_for_load'):

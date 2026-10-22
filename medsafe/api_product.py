@@ -54,7 +54,7 @@ def stats():
 
 @app.post('/api/prescriptions')
 async def upload(file:UploadFile=File(...),
-                 engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$'),
+                 engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract|gemini_demo)$'),
                  preprocess:str=Query('none',pattern='^(none|clahe|adaptive|deskew_clahe)$')):
     started=time.perf_counter()
     name=(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
@@ -83,7 +83,7 @@ async def upload(file:UploadFile=File(...),
 
 @app.post('/api/prescriptions/batch')
 async def upload_batch(files:list[UploadFile]=File(...),
-                       engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$'),
+                       engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract|gemini_demo)$'),
                        preprocess:str=Query('none',pattern='^(none|clahe|adaptive|deskew_clahe)$')):
     """Process a bounded local batch while preserving per-image review state."""
     if not files or len(files)>32:

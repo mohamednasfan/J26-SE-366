@@ -10,7 +10,7 @@ export default function Upload({models={},onUploaded}){
  const [drag,setDrag]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const select=(f)=>{if(!f)return;if(!TYPES.test(f.name)){setError('Choose a PNG, JPG, WEBP, or single-page PDF.');return}if(f.size>12*1024*1024){setError('Maximum file size is 12 MB.');return}setFile(f);setError('')};
  const submit=async()=>{if(!file)return;setBusy(true);setError('');try{const result=await uploadPrescription(file,engine,preprocess);await onUploaded(result.id)}catch(e){setError(e.message)}finally{setBusy(false)}};
- const engines=[['tesseract','Tesseract','Baseline OCR'],['easyocr','EasyOCR','Deep learning OCR'],['paddleocr','PaddleOCR','Document OCR'],['craft_trocr','CRAFT + TrOCR','Detection + handwritten recognition']];
+ const engines=[['tesseract','Tesseract','Local baseline OCR'],['gemini_demo','Gemini demo OCR','External image reading for demonstration'],['easyocr','EasyOCR','Research comparison'],['paddleocr','PaddleOCR','Research comparison'],['craft_trocr','CRAFT + TrOCR','Research model comparison']];
  return <><div className="upload-layout"><section className="surface upload-card">
   <div className="section-top"><div><h3>Upload prescription</h3><p>Use an image or one-page PDF. No text is considered verified until you review it.</p></div><div className="step-label">STEP 01 / 03</div></div>
   <input ref={ref} type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" hidden onChange={e=>select(e.target.files?.[0])}/>
