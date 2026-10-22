@@ -167,6 +167,80 @@ def _trocr_lines(image:Image.Image, boxes):
     return texts
 
 
+@lru_cache(maxsize=1)
+def _easy_reader():
+    import easyocr
+    import torch
+    return easyocr.Reader(['en'], gpu=torch.cuda.is_available(), verbose=False)
+
+
+@lru_cache(maxsize=1)
+def _paddle_reader():
+    from paddleocr import PaddleOCR
+    return PaddleOCR(
+        lang='en', use_doc_orientation_classify=False,
+        use_doc_unwarping=False, use_textline_orientation=False,
+        enable_mkldnn=False,
+    )
+
+
+def _paddle_regions(pages):
+    """Normalize PaddleOCR 3.x result objects and numpy polygon arrays."""
+    import math
+    regions = []
+    for page in pages or []:
+        raw = getattr(page, 'json', None)
+        data = raw() if callable(raw) else raw if isinstance(raw, dict) else page
+        if not isinstance(data, dict):
+            continue
+        data = data.get('res', data)
+        if not isinstance(data, dict):
+            continue
+        texts = data.get('rec_texts')
+        polys = data.get('rec_polys')
+        if polys is None or len(polys) == 0:
+            polys = data.get('dt_polys')
+        if polys is None or len(polys) == 0:
+            polys = data.get('rec_boxes')
+        scores = data.get('rec_scores')
+        if texts is None or polys is None:
+            continue
+        for offset, text in enumerate(texts):
+            if offset >= len(polys):
+                break
+            polygon = polys[offset]
+            if polygon is None or len(polygon) == 0:
+                continue
+            # PaddleOCR can emit either 4-point polygons or [x1,y1,x2,y2].
+            try:
+                if len(polygon) == 4 and all(
+                    isinstance(v, (int, float)) or not hasattr(v, '__len__') for v in polygon
+                ):
+                    x1, y1, x2, y2 = [int(float(v)) for v in polygon]
+                else:
+                    xs = [int(float(point[0])) for point in polygon]
+                    ys = [int(float(point[1])) for point in polygon]
+                    x1, y1, x2, y2 = min(xs), min(ys), max(xs), max(ys)
+            except (ValueError, TypeError, IndexError):
+                continue
+            if x2 <= x1 or y2 <= y1:
+                continue
+            score = None
+            if scores is not None and offset < len(scores):
+                try:
+                    value = float(scores[offset])
+                    if math.isfinite(value) and 0 <= value <= 1:
+                        score = value
+                except (TypeError, ValueError):
+                    pass
+            regions.append({
+                'id': len(regions)+1, 'text': str(text).strip(),
+                'box': [x1, y1, x2, y2],
+                'verified': False, 'confidence': score,
+            })
+    return regions
+
+
 def recognize(data:bytes,engine='craft_trocr'):
     image=decode_image(data)
     if engine=='tesseract':
@@ -176,47 +250,43 @@ def recognize(data:bytes,engine='craft_trocr'):
                 'confidence':None,'width':image.width,'height':image.height}
     if engine == 'easyocr':
         try:
-            import easyocr, torch, numpy as np
-            reader=easyocr.Reader(['en'], gpu=torch.cuda.is_available(), verbose=False)
-            items=reader.readtext(np.asarray(image), detail=1, paragraph=False)
+            import numpy as np
+            items = _easy_reader().readtext(
+                np.asarray(image), detail=1, paragraph=False
+            )
         except Exception as exc:
-            raise OCRUnavailable('EasyOCR benchmark engine unavailable: '+str(exc)[:250]) from exc
+            raise OCRUnavailable(
+                'EasyOCR engine unavailable: ' + str(exc)[:250]
+            ) from exc
         regions=[]
         for idx,(polygon,text,confidence) in enumerate(items,1):
             xs=[int(p[0]) for p in polygon]; ys=[int(p[1]) for p in polygon]
-            regions.append({'id':idx,'text':text.strip(),'box':[min(xs),min(ys),max(xs),max(ys)],'verified':False,
-                            'confidence':float(confidence) if confidence is not None else None})
-        return {'text':'\n'.join(r['text'] for r in regions if r['text']).strip(),
-                'engine':'easyocr','regions':regions,'boxes':[r['box'] for r in regions],
-                'warnings':['EASYOCR_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
-                'confidence':None,'width':image.width,'height':image.height}
+            regions.append({
+                'id': idx, 'text': text.strip(),
+                'box': [min(xs),min(ys),max(xs),max(ys)], 'verified':False,
+                'confidence':float(confidence) if confidence is not None else None,
+            })
+        return {
+            'text':'\n'.join(r['text'] for r in regions if r['text']).strip(),
+            'engine':'easyocr','regions':regions,'boxes':[r['box'] for r in regions],
+            'warnings':['EASYOCR_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
+            'confidence':None,'width':image.width,'height':image.height,
+        }
     if engine == 'paddleocr':
         try:
-            from paddleocr import PaddleOCR
             import numpy as np
-            reader=PaddleOCR(lang='en', use_doc_orientation_classify=False,
-                             use_doc_unwarping=False, use_textline_orientation=False,
-                             enable_mkldnn=False)
-            result=reader.predict(np.asarray(image))
+            result = _paddle_reader().predict(np.asarray(image))
+            regions = _paddle_regions(result)
         except Exception as exc:
-            raise OCRUnavailable('PaddleOCR benchmark engine unavailable: '+str(exc)[:250]) from exc
-        regions=[]
-        for page in result or []:
-            raw_json=getattr(page,'json',None)
-            data=raw_json() if callable(raw_json) else (raw_json if isinstance(raw_json,dict) else page)
-            data=data.get('res',data) if isinstance(data,dict) else {}
-            texts=data.get('rec_texts',[]) or []; boxes=data.get('rec_polys',[]) or data.get('dt_polys',[]) or []
-            scores=data.get('rec_scores',[]) or []
-            for idx,text in enumerate(texts,1):
-                poly=boxes[idx-1] if idx-1<len(boxes) else []
-                if not poly: continue
-                xs=[int(p[0]) for p in poly]; ys=[int(p[1]) for p in poly]
-                regions.append({'id':idx,'text':str(text).strip(),'box':[min(xs),min(ys),max(xs),max(ys)],'verified':False,
-                                'confidence':float(scores[idx-1]) if idx-1<len(scores) else None})
-        return {'text':'\n'.join(r['text'] for r in regions if r['text']).strip(),
-                'engine':'paddleocr','regions':regions,'boxes':[r['box'] for r in regions],
-                'warnings':['PADDLEOCR_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
-                'confidence':None,'width':image.width,'height':image.height}
+            raise OCRUnavailable(
+                'PaddleOCR engine unavailable: ' + str(exc)[:250]
+            ) from exc
+        return {
+            'text':'\n'.join(r['text'] for r in regions if r['text']).strip(),
+            'engine':'paddleocr','regions':regions,'boxes':[r['box'] for r in regions],
+            'warnings':['PADDLEOCR_TEXT_UNVERIFIED','MODEL_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
+            'confidence':None,'width':image.width,'height':image.height,
+        }
     if engine!='craft_trocr':raise ValueError('Unsupported engine. Choose craft_trocr, easyocr, paddleocr, or tesseract.')
     boxes=_boxes(image)
     if not boxes:
