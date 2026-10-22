@@ -6,12 +6,25 @@ const targets=[
  ['Character error rate','≤ 10%','CER'],['Medicine name accuracy','≥ 90%','Exact field match'],['Dosage field accuracy','≥ 90%','Exact field match'],
  ['Overdose precision & recall','≥ 85%','Independent alert labels'],['Age-check accuracy','≥ 85%','Independent age labels'],['Processing speed','≤ 10s','Per-image GPU benchmark']
 ];
-export default function Research({research={},models={}}){
+export default function Research({research={},models={},historical={},benchmarks={}}){
  const installed=models.benchmark_engines||{};
  return <div className="stack-lg">
    <div className="research-banner"><div className="research-banner-icon"><BrainCircuit size={27}/></div>
     <div><h2>Reproducible OCR evaluation</h2><p>Four engines, shared held-out images and human-verified references. Model installation does not imply validated accuracy.</p></div>
     <Badge tone="amber">Independent results required</Badge></div>
+   {historical.n_aligned_images>0&&<section className="surface"><div className="section-top"><div><h3>Archived four-engine comparison</h3><p>{historical.n_aligned_images} matching original-variant medicine-word images · earlier experiment, not final trained checkpoint</p></div><Badge tone="amber">Historical baseline</Badge></div>
+    <div className="table-scroll"><table className="data-table"><thead><tr><th>OCR engine</th><th>Character error</th><th>Word error</th><th>Medicine accuracy</th></tr></thead>
+    <tbody>{Object.entries(historical.engines||{}).map(([name,metrics])=><tr key={name}><td><strong>{name==='trocr_historical'?'TrOCR (historical)':name.charAt(0).toUpperCase()+name.slice(1)}</strong></td>
+      <td>{(metrics.micro_CER*100).toFixed(2)}%</td><td>{(metrics.micro_WER*100).toFixed(2)}%</td><td><span className="target-number">{(metrics.medicine_accuracy*100).toFixed(2)}%</span> <small>({metrics.correct}/780)</small></td></tr>)}</tbody></table></div>
+    <div className="research-evidence-note">These matched word-image measurements come from the archived Kaggle-dataset experiment; they do not assess age, administered doses, or the later Notebook 44 fine-tuned TrOCR model.</div>
+   </section>}
+   <section className="surface"><div className="section-top"><div><h3>Current held-out benchmark</h3><p>Results appear when a human-verified test manifest has been evaluated by all selected OCR engines</p></div><Badge tone={benchmarks.status==='HUMAN_VERIFIED_TEST'?'teal':'amber'}>{benchmarks.status==='HUMAN_VERIFIED_TEST'?'Human-verified cohort':'No verified run configured'}</Badge></div>
+   {Object.keys(benchmarks.engines||{}).length>0?<div className="table-scroll"><table className="data-table"><thead><tr><th>Engine</th><th>Coverage</th><th>CER</th><th>Medicine name</th><th>95th-percentile time</th></tr></thead>
+   <tbody>{Object.entries(benchmarks.engines).map(([name,item])=><tr key={name}><td>{name}</td><td>{(Number(item.coverage||0)*100).toFixed(0)}%</td><td>{item.metrics?.ocr?.CER!=null?(item.metrics.ocr.CER*100).toFixed(2)+'%':'Not verified'}</td>
+    <td>{item.metrics?.fields?.medicine?.accuracy!=null?(item.metrics.fields.medicine.accuracy*100).toFixed(2)+'%':'Not verified'}</td>
+    <td>{item.timing?.p95_s!=null?item.timing.p95_s+' s':'—'}</td></tr>)}</tbody></table></div>:
+    <div className="research-evidence-note">No independent benchmark JSON is loaded in this installation. Run <code>python -m backend.app.research.benchmark</code> with human-reviewed test images, then configure MEDSAFE_BENCHMARK_RESULTS.</div>}
+   </section>
    <section className="surface"><div className="section-top"><div><h3>Recognition engines</h3><p>Availability reported by this running environment</p></div></div>
     <div className="research-engines">{Object.entries(titles).map(([id,[name,description]])=><div className="research-engine" key={id}>
     <div className="research-engine-icon"><BrainCircuit size={21}/></div><div><strong>{name}</strong><p>{description}</p></div><Badge tone={installed[id]?'teal':'amber'}>{installed[id]?'Package detected':'Setup required'}</Badge></div>)}</div>
