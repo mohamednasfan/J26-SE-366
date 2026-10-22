@@ -51,3 +51,15 @@ def synthetic_dataset():
                 'human_verified':False,'clinical_evidence':False}
     except (OSError,TypeError,ValueError):
         return {'status':'INVALID','count':0}
+
+@router.get('/historical')
+def historical_baseline():
+    """Bundled, previously recorded *word-level* results; never thesis release evidence."""
+    path=Path(__file__).resolve().parents[5]/'research'/'historical_baseline_780.json'
+    try:
+        document=json.loads(path.read_text(encoding='utf-8'))
+        if document.get('schema')!='medsafe.historical_baseline.v1':
+            raise ValueError('Unexpected schema')
+        return document
+    except (OSError,ValueError):
+        return {'status':'NOT_AVAILABLE','n_aligned_images':0,'engines':{}}
