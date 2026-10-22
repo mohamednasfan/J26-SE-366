@@ -1,148 +1,145 @@
-# MedSafe-AI — Runnable thesis application v1.0
+# MedSafe-AI — Prescription Intelligence Research Platform
 
-**MedSafe-AI: Prescription OCR Accuracy + Overdose Detection + Age Dosage Validation**
+**Thesis:** Prescription OCR Accuracy + Overdose Detection + Age Dosage Validation
 
-A locally runnable **research application**, built from the pre-existing MedSafe-AI core code. It consists of a FastAPI backend, a bundled zero-dependency browser interface, optional React/Vite frontend source, persistent local SQLite history, a primary **CRAFT + pretrained TrOCR** OCR adapter, a Tesseract baseline, prescription corrections, official-label candidate lookup, and evidence-gated medication warnings.
+MedSafe-AI is a locally hosted, modular **FastAPI + React + SQLite** research application. It records prescription images, compares four OCR adapters, supports manual transcription review and revisions, retrieves official drug-label candidates, performs **strictly provenance-gated** overdose/age screening, and provides reproducible research benchmark tools.
 
-> **Read this before using it:** The software is a thesis prototype **not a clinically validated product**. Do not upload real patient data to a publicly exposed instance. It never decides that a medication is safe or authorizes dispensing. Dose-limit and age-suitability checks need approved, exact product-specific rules, which are **not** bundled. Without such rules they explicitly report **UNABLE_TO_VALIDATE**. No accurate CER/WER or clinical performance is asserted. A clinician must verify actual medication and dose decisions.
+**Important:** This is software for thesis research, **not a licensed or clinically validated medication device**. It has no public multi-user authentication, no clinical approval, and must not be Internet-exposed or used to prescribe or dispense. An empty reviewed-rules registry is intentional until qualified reviewers approve actual product-specific dosing limits. Clinical safety is never automatically granted.
 
-## Fastest way to launch (Windows)
+## 1. Fast local start
 
-1. Extract this ZIP to a directory, e.g. `Documents/MedSafe_AI_Final`.
-2. Open a terminal **inside the `medsafe_core` folder**.
-3. With **Python 3.10–3.12** installed, run:
+### Windows (recommended)
 
-```powershell
-py -m venv .venv
-.venv\Scripts\activate
-python -m pip install -r requirements-product.txt
-python start_product.py
-```
+Install Python 3.11 or 3.12, **Node.js 20+ with npm**, and the Tesseract OS executable. The Tesseract binary must be on PATH or installed under the standard Windows Tesseract location. In a terminal opened inside the repository:
 
-4. Visit **http://127.0.0.1:8000**. The included browser UI works **without npm or React build**.
-5. To enable the recommended AI OCR instead of just the baseline, stop the server and run:
+    start_windows.bat
 
-```powershell
-python -m pip install -r requirements-ocr.txt
-python start_product.py
-```
+This creates a Python virtual environment, installs the baseline dependencies, **builds the current React UI**, and starts http://127.0.0.1:8000 on localhost.
 
-First-time CRAFT and pretrained TrOCR inference downloads model weights from their official model hosts. You need internet access, memory (ideally 16 GB+), and preferably an NVIDIA GPU; CPU inference can be slow. Follow the PyTorch installation guide if you need a specific CUDA wheel.
+### Linux/macOS
 
-For the **Tesseract baseline**, also install the Tesseract OS executable and ensure `tesseract` is on your PATH (Windows: install Tesseract; Ubuntu: `sudo apt install tesseract-ocr`).
+Install Python 3.11+, Node.js 20+ and Tesseract (for Ubuntu: sudo apt install tesseract-ocr). Run:
 
-## Fastest way to launch (macOS / Linux)
+    bash start_linux_mac.sh
 
-```bash
-cd medsafe_core
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-product.txt
-python -m pip install -r requirements-ocr.txt  # enable primary AI OCR
-python start_product.py
-```
+### Docker (baseline research application)
 
-Open **http://127.0.0.1:8000**. To use Tesseract, also install its OS executable.
+Install Docker Desktop, then run:
 
-**Tested here:** FastAPI API endpoints; SQLite persistence; uploading a real synthetic PNG through Tesseract; review, report, deletion, invalid input handling; and a mocked CRAFT→TrOCR adapter (59 passing tests). **Not tested here:** downloading the pretrained TrOCR and CRAFT weights or running their full neural inference, because optional libraries/weights are not installed in this environment. The React bundle could not be built here because npm dependency downloads were blocked; the bundled offline interface does not need npm.
+    docker compose up --build
 
-## App workflow
+The container binds **127.0.0.1:8000 only** and bundles the current React UI. The base Docker image installs the **Tesseract baseline**. Deep-learning OCR engines need the optional local research dependencies and models described below.
 
-1. **Overview:** dashboard of locally stored prescriptions and human-review state.
-2. **New prescription:** upload PNG, JPEG, WEBP or a **single-page PDF**. Choose recommended `CRAFT + TrOCR`, or explicit `Tesseract baseline`. No text or coordinates are hardcoded.
-3. **OCR review:** inspect the source image and CRAFT detection overlays, edit the entire transcription. OCR output is always unverified.
-4. **Structured extraction:** after confirming the text against the image, parse lines labeled `Medicine:`, `Dose:`, `Frequency:`, `Age:`, `Route:`, etc. Unrecognized fields are left blank; do not silently assume product strength equals administered dose.
-5. **Evidence-gated safety report:** identify missing, conflicting, invalid, ambiguous or duplicate fields. Return **UNABLE_TO_VALIDATE** without an applicable approved medication limit/age rule.
-6. **Optional reference candidates:** the report can query RxNorm, DailyMed and openFDA on request; returned labels do not automatically establish exact drug identity, safe dosing or age appropriateness.
-7. **History & export:** SQLite local record storage; review report page, JSON export, browser print, permanent deletion.
-8. **Research dashboard:** explains models and accurately lists metrics as *not yet independently established*.
+The old static offline UI is retained only as a compatibility fallback; the supported start scripts build and serve the redesigned React application. If Node/npm is unavailable, the local launcher explicitly refuses to show stale assets.
 
-### Recommended reviewed transcript format
+## 2. Frontend and architecture
 
-For a single medication:
+- React/Vite feature modules: Overview, Upload, Prescription Records, Review Workspace, Research & Benchmarks.
+- Shared design system and UI components under frontend/src/{app,components,features,lib,styles}.
+- FastAPI entry at backend.app.main:app with backend/app/{api,services,research} modules.
+- Legacy medsafe/ package contains extraction, preprocessing, adapters, independent evaluation, rule registry, and storage. Existing API and tests remain compatible.
+- SQLite local persistence, timestamped revision hash evidence, atomic source-image storage, paginated history, and JSON report export.
+- GitHub Actions runs the full Python test suite and React production build on each pull request.
 
-```
-Patient: Jane Example
-Age: 30 years
-Medicine: [independently verified medicine name]
-Strength: [product concentration or strength, if known]
-Dose: [administered amount, e.g. 100 mg]
-Frequency: twice daily
-Route: oral
-```
+The backend is intentionally **single-user local only**. Industrial code organization does not mean enterprise cybersecurity certification, HIPAA compliance, or clinical regulatory clearance.
 
-For multiple medicines, repeat `Medicine:`, `Strength:`, `Dose:`, `Frequency:`, `Route:` blocks. Age and weight are patient-level fields shared by all explicit medicine blocks.
+## 3. End-to-end workflow
 
-Optional fields for source-reviewed dosing-rule matches:
+1. Upload a PNG/JPEG/WEBP or single-page PDF (12 MB request cap; image decoder also enforces its own stricter size and pixel limits).
+2. Choose one OCR engine: Tesseract, EasyOCR, PaddleOCR or CRAFT + Notebook 44 fine-tuned TrOCR.
+3. Choose image input treatment: original, CLAHE, adaptive binarization, or deskew + CLAHE. The original file is never overwritten.
+4. Inspect the original prescription beside OCR text, correct it and explicitly confirm the transcription.
+5. Review extracted medicine, dose, frequency, route, patient age/weight and missing/ambiguous fields. A revision generates another local audit event and recalculates the screening report.
+6. Consult sourced DailyMed, openFDA and RxNorm search candidates. These do **not** automatically verify product identity or establish dose limits.
+7. With an independently qualified-reviewer-approved, exact product/route/indication/population rule, screen for a threshold exceedance and an out-of-range age. Validated mg/mcg/g conversions and optional weight-based mg/kg limits are supported. An undecidable context remains NOT_EVALUATED.
+8. Export the research report. Clinical clearance is always false.
 
-```
-Product Identifier: [verified product identifier]
-Indication: [verified clinical indication]
-Population: [verified population]
-```
+## 4. Fine-tuned TrOCR and optional OCR engines
 
-These are not guessed from handwriting or age. They must come from independent confirmation by a qualified reviewer, using appropriate records. A matching dose limit still does **not** prove clinical safety.
+The **actual Notebook 44 fine-tuned checkpoint is not included in GitHub**. It was saved under the original Drive project:
 
-## Clinical-reference rule infrastructure
+    MedSafe_AI_Project/02_models/trocr_finetuned_official_source_dev_notebook44/943e9bd2b5f1a54d/best_model_DEVELOPMENT_ONLY/
 
-A verified rule registry is **empty by default**, at `reviewed_rules_EMPTY.json`. The `medsafe/rule_registry.py` module checks that a rule has ingredient, exact product identifier, route, indication, population, unit, maximum single and daily limits, public source URL and section, reviewer identity, review date, version and the `APPROVED_BY_QUALIFIED_REVIEWER` status. Optional `min_age_years` and `max_age_years` allow **source-reviewed age-band warnings** (not personalized dose verification). The app does not import raw web snippets as thresholds. A rule match requires exact, independently confirmed context and compatible units and frequency. Set `MEDSAFE_REVIEWED_RULES` to the path of the approved JSON file only after source validation and clinical governance approval.
+Copy this model folder to a local folder or mount Google Drive. The model must include config.json, model.safetensors and the associated processor/tokenizer files. Configure MEDSAFE_TROCR_MODEL_DIR before starting the app, for example:
 
-No dose limits or age rules for real drugs are shipped; this avoids giving a dangerous impression of validated safety.
+    # Linux/macOS
+    export MEDSAFE_TROCR_MODEL_DIR="/absolute/path/to/best_model_DEVELOPMENT_ONLY"
 
-## Recommended model stack
+    # Windows PowerShell
+    $env:MEDSAFE_TROCR_MODEL_DIR="C:\path\to\best_model_DEVELOPMENT_ONLY"
 
-- **CRAFT detector:** via EasyOCR's detection-only API (`easyocr.Reader(['en'], detector=True, recognizer=False)`). We use model-detected rectangles; no prescription-template coordinates.
-- **TrOCR pretrained handwriting model:** `microsoft/trocr-base-handwritten`, loaded via Hugging Face Transformers. No fine-tuned checkpoint required to run the primary pipeline.
-- **Baseline:** Tesseract (explicitly selected in the upload form), **not** a silent fallback.
-- **Language processing:** conservative labeled-field extraction and unresolved candidate flagging; not a general clinical NLP extractor.
-- **Reference candidates:** RxNorm, DailyMed and openFDA through an on-demand, server-to-server call.
-- **Backend:** Python / FastAPI / SQLite.
-- **Frontend:** responsive offline-ready HTML/CSS/JS interface (immediately served), plus React/Vite source (`frontend/src/`) for future frontend development. If you have npm access, `cd frontend && npm install && npm run build` makes the server automatically prefer the React production build.
+Install optional model dependencies using:
 
-### Configuration
+    python -m pip install -r requirements-ocr.txt
+    python setup_and_verify_models.py --model-id "/path/to/best_model_DEVELOPMENT_ONLY"
 
-| Variable | Purpose |
-| --- | --- |
-| `MEDSAFE_PRETRAINED_TROCR` | Model ID or local checkpoint directory, default `microsoft/trocr-base-handwritten` |
-| `MEDSAFE_OFFLINE=1` | Forces local-only TrOCR weights; raises an explicit error if absent |
-| `MEDSAFE_DATA_DIR` | Location of SQLite database and uploaded images; default `runtime_data/` |
-| `MEDSAFE_REVIEWED_RULES` | Clinician-reviewed dose-limit and optional age-band rule registry |
+The verification command writes runtime_data/ocr_model_smoke_test.json and attempts real CRAFT detection + Notebook44 inference. The app never silently replaces missing fine-tuned weights with the generic pretrained model.
 
-API docs at **http://127.0.0.1:8000/docs**. Basic health probe at `/api/health`. Model readiness at `/api/models`.
+OCR status reports whether libraries **and** checkpoint files are installed; this is not an independent accuracy certification. The legacy research OCR route uses the same Notebook44 checkpoint.
 
-## Development / verification
+## 5. Synthetic dataset (300–500 images)
 
-```bash
-python -m pytest -q
-```
+Generate 400 deterministic fictional prescription pages:
 
-The provided test suite includes 59 tests as of the packaged build; run again in your own environment after installing dependencies.
+    python -m backend.app.research.synthetic --output runtime_data/synthetic --count 400 --seed 20261022
 
-If frontend npm packages are available:
+The dataset has train/validation/test splits, transcription and structured fields, fictional overdose and age-label fixtures, blur/illumination/rotation variations, and a JSONL manifest. It is **not** real patient data and is NOT independently human-verified. Never use its dosage thresholds for actual medicines.
 
-```bash
-cd frontend
-npm install
-npm run build
-# python start_product.py then serves React dist automatically
-```
+For a development-only Tesseract comparison:
 
-Or run `npm run dev` alongside Python for Vite live reload. Its proxy targets the Python server on localhost port 8000.
+    python -m backend.app.research.benchmark runtime_data/synthetic/manifest.jsonl --synthetic-development-only --engines tesseract --preprocess clahe --output runtime_data/ocr_synthetic_development.json
 
-## Honest limitations and thesis completion checklist
+## 6. Four-engine, independently reviewed benchmark
 
-- First-run heavyweight pretrained neural OCR not executed in this build environment; actual model readiness is shown by the app. On-device inference and accuracy require model download, compatible Torch/Transformers/EasyOCR versions and runtime testing.
-- CRAFT crops can split or merge prescription lines; TrOCR can misread medicine names and digits. It does not output clinically calibrated token confidence.
-- Structured extraction is conservative rule-based parsing, not a validated medicine entity linking model. It will miss unlabeled handwritten fields and leave ambiguous instructions unresolved.
-- Real-medication dose thresholds, age-appropriateness, dose per kg, interaction analysis and clinical rules are not automatically populated. **No actual overdose verdict** is issued in the absence of qualified reviewed rules.
-- Independent evaluation still requires held-out prescription images with genuinely human-verified reference labels and clinician-reviewed alert outcomes. Do not substitute pretrained OCR output for gold labels.
-- No authentication, encryption, network access controls, audit-grade identity verification or clinical regulatory review. It must not be hosted publicly or used for real patient healthcare.
-- Multi-page PDFs are rejected; single-page image/PDF only. Uploaded images are kept locally until deleted. Default image decoder has an 8 MiB image limit even though the request body can be 12 MiB to support PDF; very large inputs fail with a readable error.
+Prepare a test JSONL manifest whose image_path values are relative to the manifest directory. Every record needs:
 
-## Thesis sources
+    {
+      "image_id": "TEST-001",
+      "image_path": "images/test-001.png",
+      "split": "test",
+      "human_verified": true,
+      "reviewer_id": "independent-reviewer-id",
+      "gold_transcript": "Medicine: ...\nDose: ...",
+      "gold": {"medicine": "...", "dose": "..."},
+      "gold_alert": false,
+      "gold_age_flag": false
+    }
 
-Project alignment is based on the uploaded MedSafe-AI proposal (Prescription OCR Accuracy + Overdose Detection + Age Dosage Validation) and the pre-existing MedSafe-AI Core App v0.7. The project proposal sets out comparing Tesseract, EasyOCR, PaddleOCR and TrOCR and using DailyMed/openFDA information for dose/age reference checks. This runnable application's active OCR is CRAFT+TrOCR with optional Tesseract; other OCR benchmark modules are research follow-up work, not misrepresented as already implemented.
+The final alert labels must be independently adjudicated and based on approved product-specific medical rules; do not invent them. The benchmark requires unique image IDs and image bytes. On exactly the same images/preprocessing, run:
 
-## Model-enabled installation and verification
+    python -m backend.app.research.benchmark /path/to/human_verified_manifest.jsonl --engines tesseract easyocr paddleocr craft_trocr --preprocess clahe --output runtime_data/ocr_independent_benchmark.json
 
-For a **model-enabled** setup, use `INSTALL_AND_RUN_WINDOWS.bat` on Windows, or `bash install_and_run_linux_mac.sh` on Linux/macOS. These installers install OCR dependencies, download official CRAFT and TrOCR weights on first use, and **refuse to start the server if real model inference fails**. The verification report is saved in `runtime_data/ocr_model_smoke_test.json`. To re-test an uploaded image locally, run `python setup_and_verify_models.py --image path/to/prescription.png`. Model downloads require internet access and adequate RAM/disk; the ZIP intentionally does not embed multi-gigabyte third-party weights. A passing smoke test verifies executable OCR, **not** prescription correctness or clinical safety.
+The output includes per-engine CER, WER, medicine and dose field accuracy, measured latency, and **separately counted** dose/age alert evaluations. Missing clinical rules trigger abstention rather than fabricated safe/unsafe predictions. Machine-readable thesis eligibility additionally requires complete independent evidence, positive and negative examples, and at least 50 verified test images.
+
+Set MEDSAFE_BENCHMARK_RESULTS to that JSON path and restart the application to show aggregate results on the Research page. Individual predictions and patient text are not exposed by the public research metrics endpoint.
+
+The archived 780-image, four-engine word-image comparison remains available in research/historical_baseline_780.json and on the dashboard; it must not be confused with the later fine-tuned Notebook44 model or full-prescription results.
+
+## 7. Dosing rules and provenance
+
+reviewed_rules_EMPTY.json intentionally contains []. Set MEDSAFE_REVIEWED_RULES to another carefully reviewed registry only when an authorized qualified reviewer has verified exact formulation/product, route, indication, population, dose unit, limits, valid source URL/section, date and version. Age bands and mg/kg thresholds can also be included where explicitly supported. This is a **screening rule**, never a diagnosis, dose recommendation or clinical sign-off.
+
+The software cannot independently confirm reviewer professional qualifications, label applicability, local guidelines, product equivalence or patient-specific contraindications. Unverified records must not be labeled approved.
+
+## 8. Verification
+
+    python -m pip install -r requirements-product.txt
+    python -m pip install -U pytest
+    python -m pytest -q
+
+    cd frontend
+    npm install
+    npm run build
+
+Inspect the GitHub Actions checks on the latest branch for actual suite and build outcomes. Tests with synthetic fixtures or mocked OCR engines prove software behavior, not clinical accuracy. Real four-model inference, independent gold labels, qualified clinical rule adjudication and the thesis acceptance measurements require their respective datasets and model hardware.
+
+## Privacy and security
+
+- Run only on a trusted, access-controlled local machine or loopback Docker binding.
+- Never expose unauthenticated endpoints through public tunnels.
+- Store real patient images only with authorization and an appropriate retention/consent policy.
+- Uploaded images and corrected transcriptions are stored in local SQLite/files and **not encrypted at rest** by this app.
+- Audit timestamps and SHA-256 digests give revision evidence, **not tamper-proof or legally signed audit logs**.
+- Use fictional data during demonstrations unless approvals and privacy safeguards are in place.
+
+For source layout, see docs/PROJECT_STRUCTURE.md. For historical OCR evidence, see docs/ARCHIVED_OCR_BASELINE.md.
