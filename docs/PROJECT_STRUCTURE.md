@@ -13,6 +13,7 @@ medsafe-ai-prescription-intelligence/
 │   └── main.py                           # ASGI entry point
 ├── medsafe/
 │   ├── api_product.py                    # established API routes and upload workflow
+│   ├── preprocessing.py                 # optional shared OpenCV document enhancement
 │   ├── ocr_product.py                    # Tesseract, EasyOCR, PaddleOCR, CRAFT+TrOCR
 │   ├── trocr.py                          # Notebook44 fine-tuned research checkpoint
 │   ├── extraction.py / pipeline.py       # typed field extraction and orchestration
@@ -28,7 +29,7 @@ medsafe-ai-prescription-intelligence/
 │   └── styles/app.css                    # responsive product design system
 ├── research/historical_baseline_780.json # aligned archival four-model evidence
 ├── docs/                                 # experiment and deployment documentation
-├── tests/                                # Python unit + integration tests
+├── tests/                                # Python regression/integration/benchmark contract tests
 ├── .github/workflows/                    # Python suite + frontend build CI
 ├── Dockerfile / compose.yaml             # loopback-only local container deployment
 ├── examples/                              # fictional test inputs
@@ -44,3 +45,11 @@ The established FastAPI API continues to live in `medsafe.api_product` while cli
 The codebase is organized for professional engineering but is **not a clinically approved device**. It does not provide identity management, encrypted multi-tenant hosting, independently signed clinical evidence, or regulatory certification. The Docker Compose port binds only to host loopback; patient data must never be sent to unsecured public deployments.
 
 The separate model files, patient data, caches and generated synthetic images are excluded from source control. Rule files remain empty for real medication until a qualified reviewer verifies each formulation, dose limit, age context and source section.
+
+## Source-image handling
+
+The API stores the original user bytes atomically and performs non-destructive OpenCV enhancement only for OCR input. History queries support `limit` and `offset`; summary counts come from the full SQLite table. Files must remain on trusted local storage.
+
+## Launching the correct UI
+
+The supported `start_product.py` launcher checks for a current React `frontend/dist` bundle and builds it with npm if needed. Missing Node/npm is an explicit setup error rather than a silent switch to the obsolete offline UI. The Dockerfile builds the React bundle during its frontend build stage.
