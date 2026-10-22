@@ -43,3 +43,5 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build React application
         run: npm run build
+      - name: Run React component regression tests
+        run: npm run test:unit
