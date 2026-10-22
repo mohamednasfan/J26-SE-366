@@ -57,6 +57,7 @@ def test_unsafe_image_rejected(client):
 def test_craft_pipeline_no_hardcoded_boxes(monkeypatch):
     import medsafe.ocr_product as p
     im=Image.new('RGB',(200,150),'white');b=io.BytesIO();im.save(b,format='PNG')
+    monkeypatch.setattr(p,'checkpoint_status',lambda:{'ready_for_load':True})
     monkeypatch.setattr(p,'_boxes',lambda image:[(12,20,170,43),(7,78,155,110)])
     monkeypatch.setattr(p,'_trocr_lines',lambda image,boxes:['Medicine: Example','Dose: 5 mg'])
     r=p.recognize(b.getvalue())

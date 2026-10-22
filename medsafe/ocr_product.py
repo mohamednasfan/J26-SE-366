@@ -288,18 +288,24 @@ def recognize(data:bytes,engine='craft_trocr'):
             'confidence':None,'width':image.width,'height':image.height,
         }
     if engine!='craft_trocr':raise ValueError('Unsupported engine. Choose craft_trocr, easyocr, paddleocr, or tesseract.')
+    # Never return an apparently successful empty OCR result when the
+    # required fine-tuned recognition checkpoint is not installed.
+    if not checkpoint_status().get('ready_for_load'):
+        raise OCRUnavailable('Notebook 44 fine-tuned TrOCR checkpoint is missing or incomplete')
     boxes=_boxes(image)
     if not boxes:
         return {'text':'','engine':engine,'regions':[],'boxes':[],
-                'warnings':['NO_CRAFT_REGIONS_DETECTED','OCR_NOT_VERIFIED'],
+                'warnings':['NO_CRAFT_REGIONS_DETECTED','OCR_NOT_VERIFIED','MANUAL_TRANSCRIPTION_REQUIRED'],
                 'confidence':None,'width':image.width,'height':image.height}
     preds=_trocr_lines(image,boxes)
     if len(preds)!=len(boxes):raise OCRUnavailable('OCR region-prediction count mismatch; refusing incomplete result')
     lines=_sequence(boxes)
     text='\n'.join(' '.join(preds[idx] for idx in line if preds[idx]) for line in lines).strip()
-    regions=[{'id':idx+1,'text':preds[idx],'box':list(box),'verified':False}
-             for idx,box in enumerate(boxes)]
+    ordered=[idx for line in lines for idx in line]
+    regions=[{'id':idx+1,'reading_order':position+1,'text':preds[idx],
+              'box':list(boxes[idx]),'verified':False}
+             for position,idx in enumerate(ordered)]
     return {'text':text,'engine':engine,'regions':regions,
-            'boxes':[list(b) for b in boxes], 'warnings':['CRAFT_BOXES_UNVERIFIED','TROCR_TEXT_UNVERIFIED',
+            'boxes':[r['box'] for r in regions], 'warnings':['CRAFT_BOXES_UNVERIFIED','TROCR_TEXT_UNVERIFIED',
                                                            'TOKEN_CONFIDENCE_UNCALIBRATED'],
             'confidence':None,'width':image.width,'height':image.height}

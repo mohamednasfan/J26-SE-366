@@ -1,0 +1,29 @@
+{
+  "schema": "medsafe.synthetic_tesseract_smoke.v1",
+  "source": "Generated 400-image, seed 20261022 synthetic artifact in conversation",
+  "dataset_type": "SYNTHETIC_TYPESET_NOT_HANDWRITTEN",
+  "cohort": "test split",
+  "cohort_n": 60,
+  "scored_n": 60,
+  "engine": "Tesseract OS binary via pytesseract",
+  "preprocessing": "PIL grayscale + autocontrast",
+  "parameters": {
+    "psm": 6
+  },
+  "ground_truth": "Generator-derived; not independently reviewed",
+  "metrics": {
+    "character_error_rate": 0.005151641046946406,
+    "word_error_rate": 0.03018223234624146,
+    "medicine_exact_accuracy": 0.6666666666666666,
+    "dose_exact_accuracy": 0.9833333333333333,
+    "mean_ocr_seconds": 0.20118199859983482,
+    "p95_ocr_seconds": 0.23244561399951635
+  },
+  "acceptance_evidence": false,
+  "warnings": [
+    "Not human-verified, not handwriting, not real clinical prescriptions",
+    "No full-pipeline dose or age decision accuracy measured",
+    "Timing excludes application rendering, storage and professional review"
+  ],
+  "reference": "A full per-image synthetic-only OCR record was also generated in the conversation as MedSafe_AI_Synthetic_Tesseract_Smoke_60.json"
+}

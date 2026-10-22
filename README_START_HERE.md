@@ -1,3 +1,17 @@
+> **Current release workflow (October 2026):** This repository now uses the modular React frontend, FastAPI API, optional four-engine OCR, and independent evaluation protocol in [docs/INDEPENDENT_EVALUATION_PROTOCOL.md](docs/INDEPENDENT_EVALUATION_PROTOCOL.md). **The Notebook 44 fine-tuned checkpoint is not bundled**; CRAFT + TrOCR requires that exact mounted checkpoint. Installing packages alone is not proof of model readiness. This app is for localhost research only, never clinical clearance.
+
+## Run the current modular application
+
+Install Python 3.11/3.12, Node.js 20+ with npm, and Tesseract if using its baseline. On Windows, run `start_windows.bat`; on macOS/Linux, run `bash start_linux_mac.sh`. These scripts install the core dependencies, build the current React interface, and start the backend at `http://127.0.0.1:8000`. The frontend build is mandatory so a stale offline page cannot silently replace the current UI.
+
+For the optional neural OCR engines, install `requirements-ocr.txt`. Set `MEDSAFE_TROCR_MODEL_DIR` to the **existing Notebook 44 checkpoint directory** containing `model.safetensors` and tokenizer/processor/config files. The application reports unavailable models explicitly and never substitutes a pretrained public TrOCR for the fine-tuned research model.
+
+The **Research** page also includes an interactive four-engine OCR comparison. Upload a fictional or appropriately authorized single-page prescription; the endpoint `/api/compare` sends the same prepared image to each installed OCR engine, reports unverified transcriptions and elapsed times, and does not retain the comparison image. This is an exploratory preview, not a labeled thesis accuracy evaluation.
+
+---
+
+## Archived setup instructions (historical; may describe the older offline interface)
+
 # MedSafe-AI — Prescription Intelligence Research Platform
 
 **Thesis:** Prescription OCR Accuracy + Overdose Detection + Age Dosage Validation
