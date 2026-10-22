@@ -142,6 +142,13 @@ def report(pid:str):
     if not item['reviewer_confirmed']:raise HTTPException(409,'Transcription must be explicitly reviewed before reporting')
     return json.loads(item['report_json'])
 
+@app.get('/api/prescriptions/{pid}/audit')
+def review_audit(pid:str):
+    events=storage.audit(pid)
+    if events is None:raise HTTPException(404,'Prescription not found')
+    return {'id':pid,'events':events,'retention':'Deleted with prescription record',
+            'note':'SHA256 hashes and timestamps record text revisions without duplicating the transcript.'}
+
 @app.delete('/api/prescriptions/{pid}')
 def delete(pid:str):
     if not storage.delete(pid):raise HTTPException(404,'Prescription not found')
