@@ -54,8 +54,9 @@ def lookup(name: str, session=None) -> dict:
                 continue
             setid = str(label.get('set_id', ''))
             sections={}
-            for key in ('dosage_and_administration','pediatric_use','contraindications',
-                        'warnings','adverse_reactions'):
+            for key in ('dosage_and_administration','pediatric_use','geriatric_use',
+                        'contraindications','warnings','overdosage','adverse_reactions',
+                        'drug_interactions'):
                 raw=label.get(key,[]) if isinstance(label,dict) else []
                 if isinstance(raw,list) and raw and isinstance(raw[0],str):
                     sections[key]=raw[0][:550]
