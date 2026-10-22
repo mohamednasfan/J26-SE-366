@@ -1,0 +1,10 @@
+fastapi>=0.110,<1
+starlette>=0.40,<0.47
+uvicorn>=0.27,<1
+pydantic>=2,<3
+python-multipart>=0.0.9
+pillow>=10,<13
+requests>=2.31,<3
+pytesseract>=0.3.10,<1
+numpy>=1.25,<3
+PyMuPDF>=1.24,<2

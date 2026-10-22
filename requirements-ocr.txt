@@ -1,0 +1,12 @@
+-r requirements-product.txt
+torch>=2.3,<3
+transformers>=4.47,<5
+easyocr>=1.7,<2
+opencv-python-headless>=4.8,<5
+safetensors>=0.4,<1
+sentencepiece>=0.2,<1
+# Optional benchmark engines. Install these separately when running the
+# four-engine research comparison; they are intentionally not required for
+# the primary CRAFT + TrOCR application path.
+paddleocr>=3,<4
+paddlepaddle>=3,<4

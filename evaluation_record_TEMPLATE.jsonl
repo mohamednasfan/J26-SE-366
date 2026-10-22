@@ -1,0 +1,1 @@
+{"gold":{"medicine":"DEMO-DRUG-A","dose":"100 mg","frequency":"twice daily","age":"30 years"},"predicted":{"medicine":"DEMO-DRUG-A","dose":"100 mg","frequency":"twice daily","age":"30 years"},"gold_transcript":"DEMO-DRUG-A 100 mg twice daily","predicted_transcript":"DEMO-DRUG-A 100 mg twice daily","gold_alert":false,"predicted_alert":false}

@@ -1,0 +1,23 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+runtime_data/
+model_cache/
+.tmp/
+.pytest_tmp/
+pytest-cache-files-*/
+frontend/node_modules/
+frontend/dist/
+frontend/package-lock.json
+
+# Local-only environments and large research artifacts
+.venv/
+02_models/
+runtime_tools/*.exe
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

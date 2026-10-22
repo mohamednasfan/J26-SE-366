@@ -1,0 +1,5 @@
+Medicine: DEMO-DRUG-A
+Dose: 300 mg
+Frequency: twice daily
+Age: 10 years
+Route: oral

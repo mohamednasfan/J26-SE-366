@@ -1,0 +1,218 @@
+"""MedSafe-AI thesis web application API. Local research deployment only."""
+from __future__ import annotations
+import base64,io,json,re,os
+from pathlib import Path
+from typing import Any
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response, HTMLResponse
+from pydantic import BaseModel,Field
+from PIL import Image
+from . import storage
+from .ocr_product import recognize,status as ocr_status,OCRUnavailable
+from .pipeline import analyze_text
+from .rule_registry import load_reviewed_rules, match_rule, assess_reviewed_rule, RuleRegistryError
+from .extraction import number_and_unit,parse_frequency
+from .references import lookup
+
+app=FastAPI(title='MedSafe-AI | Prescription Intelligence', version='1.0.0',
+            description='Research prototype. All OCR is unverified. No clinical approval or automated dispensing.')
+# The built React frontend is served from the same origin; localhost dev-only CORS.
+app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],
+                   allow_methods=['GET','POST','DELETE'],allow_headers=['Content-Type'])
+MAX_SIZE=12*1024*1024
+ALLOWED={'.png','.jpg','.jpeg','.webp','.pdf'}
+
+def _raster(file:bytes,suffix:str)->tuple[bytes,str]:
+    if suffix=='.pdf':
+        try:
+            import fitz
+            doc=fitz.open(stream=file,filetype='pdf')
+            if doc.page_count!=1:raise HTTPException(422,'Please upload a single-page prescription PDF.')
+            page=doc[0];pix=page.get_pixmap(matrix=fitz.Matrix(1.8,1.8),alpha=False)
+            if pix.width*pix.height>15_000_000:raise HTTPException(422,'PDF page too large for OCR')
+            return pix.tobytes('png'),'.png'
+        except HTTPException:raise
+        except Exception as e:raise HTTPException(422,'Invalid PDF or PDF renderer unavailable') from e
+    try:
+        from .ocr import decode_image
+        decode_image(file)
+    except ValueError as e:raise HTTPException(422,str(e)) from e
+    return file,suffix
+
+@app.get('/api/health')
+def health():return {'status':'operational','mode':'LOCAL_RESEARCH_ONLY','clinical_clearance':False}
+
+@app.get('/api/models')
+def models():return ocr_status()
+
+@app.get('/api/stats')
+def stats():
+    items=storage.rows()
+    return {'total':len(items),'reviewed':sum(bool(r['reviewer_confirmed']) for r in items),
+            'pending':sum(not r['reviewer_confirmed'] for r in items),
+            'research_status':'No validated independent OCR accuracy or approved drug-dose rule collection installed'}
+
+@app.post('/api/prescriptions')
+async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+    name=(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
+    suffix=Path(name).suffix.lower()
+    if suffix not in ALLOWED:raise HTTPException(415,'Upload PNG, JPG, WEBP or single-page PDF')
+    content=await file.read(MAX_SIZE+1)
+    if len(content)>MAX_SIZE:raise HTTPException(413,'Maximum upload size: 12 MB')
+    data,ext=_raster(content,suffix)
+    try:ocr=recognize(data,engine=engine)
+    except (OCRUnavailable,RuntimeError) as e:raise HTTPException(503,str(e)) from e
+    except ValueError as e:raise HTTPException(422,str(e)) from e
+    pid=storage.create(name,ext,engine,ocr)
+    (storage.DATA/(pid+ext)).write_bytes(data)
+    return {'id':pid,'filename':name,'status':'REVIEW_REQUIRED','ocr':ocr,
+            'image_url':f'/api/prescriptions/{pid}/image',
+            'clinical_clearance':False,'can_auto_dispense':False}
+
+@app.post('/api/prescriptions/batch')
+async def upload_batch(files:list[UploadFile]=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+    """Process a bounded local batch while preserving per-image review state."""
+    if not files or len(files)>32:
+        raise HTTPException(422,'Batch size must be between 1 and 32 files.')
+    results=[]
+    for file in files:
+        try:
+            results.append(await upload(file,engine))
+        except HTTPException as exc:
+            results.append({'filename':file.filename or 'prescription','status':'FAILED','error':exc.detail})
+    return {'items':results,'count':len(results),'clinical_clearance':False,'requires_professional_review':True}
+
+@app.get('/api/prescriptions')
+def history():return {'items':storage.rows()}
+
+@app.get('/api/prescriptions/{pid}')
+def detail(pid:str):
+    item=storage.get(pid)
+    if not item:raise HTTPException(404,'Prescription not found')
+    return {'id':item['id'],'filename':item['filename'],'status':item['status'],
+            'created':item['created'],'updated':item['updated'],'engine':item['engine'],
+            'original_text':item['original_text'],'corrected_text':item['corrected_text'],
+            'reviewer_confirmed':bool(item['reviewer_confirmed']),
+            'ocr':json.loads(item['ocr_json']),'report':json.loads(item['report_json']),
+            'image_url':f'/api/prescriptions/{pid}/image','clinical_clearance':False,
+            'can_auto_dispense':False}
+
+@app.get('/api/prescriptions/{pid}/image')
+def image(pid:str):
+    item=storage.get(pid)
+    if not item:raise HTTPException(404,'Prescription not found')
+    return FileResponse(storage.DATA/item['image_name'],headers={'Cache-Control':'private, no-store'})
+
+class Review(BaseModel):
+    corrected_text:str=Field(min_length=1,max_length=12000)
+    reviewer_confirmed:bool
+    check_references:bool=False
+
+
+def _rule_assessment(report):
+    """Optional exact-match, source-reviewed threshold assessment only."""
+    path=Path(os.getenv('MEDSAFE_REVIEWED_RULES',Path(__file__).parent.parent/'reviewed_rules_EMPTY.json'))
+    try:rules=load_reviewed_rules(path)
+    except (RuleRegistryError,ValueError,OSError):rules=[]
+    for m in report.get('medications',[]):
+        fields=m['extraction']['fields']
+        # A clinical rule MUST have separately confirmed product + indication + age population.
+        # These context fields are never silently inferred from patient demographics or OCR.
+        rule=match_rule(rules,ingredient=fields.get('medicine',''),product_identifier=fields.get('product_identifier',''),
+                        route=fields.get('route',''),indication=fields.get('indication',''),
+                        population=fields.get('population','')) if rules else None
+        parsed=number_and_unit(fields.get('dose',''))
+        freq=parse_frequency(fields.get('frequency',''))
+        result=assess_reviewed_rule(rule,dose=parsed[0] if parsed else None,
+                                    unit=parsed[1] if parsed else '',frequency=freq)
+        m['reviewed_dose_rule']=result
+        m['dose_validation_available']=result['status']!='NOT_EVALUATED'
+        age_text=fields.get('age','')
+        from .extraction import parse_age
+        age=parse_age(age_text)
+        age_check={'status':'UNABLE_TO_VALIDATE','reason':'No matched source-reviewed age interval and/or verified age'}
+        if rule is not None and age is not None and type(rule.get('min_age_years')) in (int,float) and type(rule.get('max_age_years')) in (int,float):
+            lo,hi=rule['min_age_years'],rule['max_age_years']
+            if 0<=lo<=hi<=120:
+                age_check={'status':'REVIEW_AGE_RANGE_FLAG' if not lo<=age<=hi else 'WITHIN_REVIEWED_AGE_RANGE_NOT_PROOF_OF_SAFETY',
+                           'source_url':rule['source_url'],'min_age_years':lo,'max_age_years':hi,
+                           'note':'Age-range screen only; not an individual clinical dosing recommendation'}
+        m['reviewed_age_rule']=age_check
+        from .validation import finding
+        index=report['medications'].index(m)+1
+        alerts=[]
+        if result['status']=='REVIEW_THRESHOLD_EXCEEDED':
+            alerts.append(finding('REVIEWED_RULE_THRESHOLD_EXCEEDED','CAUTION',
+                 'The confirmed amount or daily total exceeds a matching source-reviewed threshold; qualified clinician assessment is required. This is a screening flag, not an overdose diagnosis.','dose'))
+        if age_check['status']=='REVIEW_AGE_RANGE_FLAG':
+            alerts.append(finding('REVIEWED_AGE_RANGE_FLAG','CAUTION',
+                 'Patient age falls outside a matching source-reviewed age range; qualified clinician review is required.','age'))
+        for a in alerts:
+            m['issues'].append(a)
+            report['issues'].append(dict(a,medicine_index=index))
+    report['reviewed_rule_count']=len(rules)
+    report['rule_assessment_policy']='Exact reviewed product, indication, route, population, and dose-unit match required. Below a threshold never means safe.'
+    return report
+
+@app.post('/api/prescriptions/{pid}/review')
+def review(pid:str,payload:Review):
+    if not storage.get(pid):raise HTTPException(404,'Prescription not found')
+    if not payload.reviewer_confirmed:raise HTTPException(422,'Explicit transcription confirmation required')
+    report=analyze_text(payload.corrected_text,ocr_mode=False,with_references=False)
+    report=_rule_assessment(report)
+    # Do not conflate verified transcription with identity, dosing or clinical signoff.
+    report['reviewer_confirmed_transcription']=True
+    report['clinical_clearance']=False
+    report['can_auto_dispense']=False
+    report['requires_professional_review']=True
+    report['dose_safety_summary']='UNABLE_TO_VALIDATE' if not any(m['dose_validation_available'] for m in report['medications']) else 'REVIEWED_REFERENCE_THRESHOLD_CHECK_ONLY'
+    report['age_safety_summary']='REVIEWED_AGE_RANGE_SCREEN_ONLY' if any(m['reviewed_age_rule']['status']!='UNABLE_TO_VALIDATE' for m in report['medications']) else 'UNABLE_TO_VALIDATE'
+    report['disclaimer']='Not medical advice. This tool cannot approve, dispense, or rule out overdose. The corrected transcription and drug-specific guidance must be checked by a qualified clinician.'
+    storage.update(pid,payload.corrected_text,report)
+    return {'id':pid,'report':report,'status':'REVIEWED_WITH_UNRESOLVED_CLINICAL_CHECKS'}
+
+@app.get('/api/prescriptions/{pid}/report')
+def report(pid:str):
+    item=storage.get(pid)
+    if not item:raise HTTPException(404,'Prescription not found')
+    if not item['reviewer_confirmed']:raise HTTPException(409,'Transcription must be explicitly reviewed before reporting')
+    return json.loads(item['report_json'])
+
+@app.delete('/api/prescriptions/{pid}')
+def delete(pid:str):
+    if not storage.delete(pid):raise HTTPException(404,'Prescription not found')
+    return {'deleted':True}
+
+@app.get('/api/reference')
+def reference(medicine:str=Query(min_length=2,max_length=80)):
+    return lookup(medicine)
+
+@app.get('/api/research')
+def research():
+    return {'ocr_models':['Tesseract (baseline)','EasyOCR (benchmark adapter)','PaddleOCR (benchmark adapter)','TrOCR (pretrained, primary)'],
+            'available_engines':ocr_status().get('benchmark_engines',{}),
+            'metric_status':'NO_INDEPENDENT_VERIFIED_TEST_METRICS_IN_APPLICATION',
+            'evaluation_policy':'CER/WER and field accuracy require independently verified human references and isolated held-out testing.',
+            'targets_not_claimed':{'medicine_name_accuracy':0.90,'dosage_accuracy':0.90,'overdose_precision_recall':0.85,'age_precision_recall':0.85},
+            'reference_policy':'DailyMed/openFDA are identity/evidence sources; no dose rule is treated as approved without product, route, indication, population, source, and qualified review.',
+            'clinical_clearance':False}
+
+@app.get('/{path:path}')
+def frontend(path:str):
+    dist=Path(__file__).parent.parent/'frontend'/'dist'
+    if path.startswith('api/') or path=='api':raise HTTPException(404,'API route not found')
+    target=(dist/path).resolve()
+    if dist.resolve() in target.parents and target.is_file():return FileResponse(target)
+    index=dist/'index.html'
+    if index.is_file():
+        # Keep a small accessible/server-side label in the HTML shell for
+        # non-JavaScript health checks and screen readers.
+        html=index.read_text(encoding='utf-8')
+        if 'PRESCRIPTION INTELLIGENCE' not in html:
+            html=html.replace('<div id="root"></div>', '<div id="root"></div><span class="sr-only">PRESCRIPTION INTELLIGENCE</span>')
+        return HTMLResponse(html)
+    fallback=Path(__file__).parent.parent/'frontend'/'offline'
+    fallback_target=(fallback/path.removeprefix('offline/')).resolve() if path.startswith('offline/') else None
+    if fallback_target and fallback.resolve() in fallback_target.parents and fallback_target.is_file():return FileResponse(fallback_target)
+    return FileResponse(fallback/'index.html')

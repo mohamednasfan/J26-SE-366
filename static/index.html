@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedSafe-AI · Prescription Analyzer</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#18243a;background:#f5f7fa}*{box-sizing:border-box}
+body{margin:0}header{padding:26px clamp(16px,4vw,60px);background:#102a44;color:white}
+header h1{font-size:26px;margin:0}header p{margin:8px 0;color:#c5d6e9}
+main{max-width:1120px;margin:25px auto;padding:0 15px}
+.alert{padding:15px 20px;background:#fff2d6;border-left:4px solid #a96f16;border-radius:6px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}
+.panel{background:#fff;border:1px solid #e5ebf1;border-radius:12px;padding:21px;box-shadow:0 2px 11px #102a440b}
+h2{margin:0 0 15px;font-size:20px}label{display:block;margin:14px 0 7px;font-weight:600}
+select,textarea,input[type=file]{width:100%;font:inherit;border:1px solid #c8d2db;border-radius:8px;padding:11px;background:white}
+textarea{min-height:210px;font-family:ui-monospace,monospace;font-size:13px;line-height:1.5;resize:vertical}
+button{background:#1869a6;border:0;color:white;padding:11px 18px;font-weight:650;border-radius:8px;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}.muted{color:#5c6d7f;font-size:13px;line-height:1.5}
+.status{background:#ebeff4;padding:10px 13px;border-radius:7px;font-size:14px;margin-bottom:14px}
+#notice{min-height:22px;margin:10px 0;color:#334860}.report{margin:14px 0;border-top:1px solid #dbe2e9;padding-top:12px}
+.flag{padding:8px 11px;margin:7px 0;border-radius:6px;background:#fff6e3;border-left:3px solid #e6a436;font-size:14px}
+.block{border-color:#ad3232;background:#fff0f0}.ok{color:#056f46}.small{font-size:13px;color:#4b6074}
+pre{background:#edf2f7;padding:12px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px}
+summary{cursor:pointer;font-weight:600}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:8px;border-bottom:1px solid #e0e6ee}
+</style></head><body>
+<header><h1>MedSafe-AI</h1><p>Prescription recognition · invalid-field checks · evidence-based medication review</p></header>
+<main>
+<div class="alert"><b>Research only — not a clinical decision tool.</b> A recognized medicine or dosing label does not establish a safe dose. Do not act on this tool without clinician or pharmacist verification.</div>
+<div id="model" class="status">Checking model availability…</div>
+<div class="grid">
+<section class="panel"><h2>Analyze a prescription image</h2>
+<p class="muted">Uses your Notebook 44 fine-tuned TrOCR model automatically when its checkpoint is mounted. Otherwise runs the explicitly identified Tesseract baseline. Neither engine certifies transcription accuracy.</p>
+<label for="image">Image (JPEG, PNG, WEBP; max 8 MB)</label><input type="file" id="image" accept="image/jpeg,image/png,image/webp">
+<label for="engine">OCR engine</label><select id="engine"><option value="auto">Auto — fine-tuned TrOCR if available</option><option value="trocr">Fine-tuned TrOCR (require checkpoint)</option><option value="tesseract">Tesseract fallback</option></select>
+<button style="margin-top:14px" id="scan">Read and validate image</button>
+<p class="muted">Image data is processed in memory. The application does not store uploaded images. Do not expose this local research server publicly.</p></section>
+<section class="panel"><h2>Analyze extracted or typed text</h2>
+<p class="muted">Structured fields are supported. Multiple medicine entries are handled separately. Raw text is not stored. Include labeled doctor, hospital, patient, and prescription details for metadata extraction.</p>
+<textarea id="text">Age: 30 years
+Medicine: DEMO-DRUG-A
+Dose: 100 mg
+Frequency: twice daily
+Route: oral</textarea>
+<label><input type="checkbox" id="refs"> Retrieve public drug-label candidates for real medicine names</label>
+<button id="validate">Validate prescription fields</button>
+<p class="muted">DEMO-DRUG-A is fictional. Its numeric tests must never be used for real medicines.</p></section>
+</div>
+<section class="panel" style="margin-top:20px"><h2>Results</h2>
+<button id="export" type="button" style="float:right" disabled>Export review JSON</button><p id="notice" aria-live="polite">No prescription has been analyzed.</p><div id="results"></div><details><summary>Technical JSON</summary><pre id="raw">No result</pre></details></section>
+</main><script>
+const $=s=>document.getElementById(s), safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let latestResult=null;
+$('export').onclick=()=>{if(!latestResult)return;const blob=new Blob([JSON.stringify(latestResult,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='medsafe_review_research_only.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+function render(d){latestResult=d.error?null:d;$('export').disabled=!latestResult;$('raw').textContent=JSON.stringify(d,null,2);$('results').innerHTML='';
+if(d.error){$('notice').textContent='Unable to analyze: '+d.error;return;}
+const meds=d.medications||[];$('notice').textContent=`Result: ${d.status} · ${meds.length||1} medication(s) · professional review required`;
+if(d.prescription_details){const meta=document.createElement('div');meta.className='report';let html='<h3>Prescription details — unverified</h3><table><tr><th>Field</th><th>Extracted value</th></tr>';for(const [k,v] of Object.entries(d.prescription_details.fields||{}))html+=`<tr><td>${safe(k.replaceAll('_',' '))}</td><td>${safe(v||'NOT FOUND')}</td></tr>`;html+='</table><p class="small">Metadata is provisional. Missing fields are not automatically prescribing errors. Signature authenticity is not verified.</p>';meta.innerHTML=html;$('results').append(meta);}
+const intro=document.createElement('p');intro.className='small';intro.textContent='No clinical clearance or dispensing permission is issued. OCR confidence is not a validated probability.';$('results').append(intro);
+for(const [i,r] of meds.entries()){
+const div=document.createElement('div');div.className='report';const f=r.extraction?.fields||{};
+let html=`<h3>Medication ${i+1}: ${safe(f.medicine||'Not recognized')}</h3><table><tr><th>Field</th><th>Recognized value</th></tr>`;
+for(const key of ['dose','strength','frequency','age','route','weight'])html+=`<tr><td>${safe(key)}</td><td>${safe(f[key]||'NOT FOUND')}</td></tr>`;
+html+=`</table><p class="small">Dose: ${safe(r.checks?.dose_safety)} · Age: ${safe(r.checks?.age_appropriateness)} · Reference lookup: ${safe(r.references?.status)}</p>`;
+for(const x of r.issues||[])html+=`<div class="flag ${x.severity==='BLOCK'?'block':''}"><b>${safe(x.code)}</b>: ${safe(x.message)}</div>`;
+div.innerHTML=html;$('results').append(div);}
+if(d.transcription_for_review!==undefined){const d2=document.createElement('details');d2.className='report';const summ=document.createElement('summary');summ.textContent='View OCR transcript (editable; may contain errors)';d2.append(summ);const t=document.createElement('textarea');t.value=d.transcription_for_review;t.id='reviewtext';d2.append(t);const b=document.createElement('button');b.textContent='Recheck corrected text';b.onclick=()=>{$('text').value=t.value;analyzeText();};d2.append(b);$('results').append(d2);}}
+async function send(url,options){$('notice').textContent='Processing locally…';$('scan').disabled=true;$('validate').disabled=true;try{const r=await fetch(url,options);const d=await r.json();render(r.ok?d:{error:JSON.stringify(d),http_status:r.status});}catch(err){render({error:String(err)});}finally{$('scan').disabled=false;$('validate').disabled=false;}}
+function analyzeText(){return send('/api/analyze-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('text').value,references:$('refs').checked})});}
+$('validate').onclick=analyzeText;
+$('scan').onclick=()=>{const f=$('image').files[0];if(!f){$('notice').textContent='Select an image first.';return;}const type=f.type||({'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','webp':'image/webp'}[(f.name.split('.').pop()||'').toLowerCase()]);send('/api/analyze-image?engine='+encodeURIComponent($('engine').value)+'&references='+String($('refs').checked),{method:'POST',headers:{'Content-Type':type},body:f});};
+fetch('/api/models').then(r=>r.json()).then(d=>{$('model').textContent='OCR model: '+d.active_engine_auto+' · Fine-tuned TrOCR checkpoint files '+(d.trocr_notebook44?.ready_for_load?'detected':'not mounted')+' · Research-only';}).catch(()=>{$('model').textContent='Model readiness is unavailable.';});
+</script></body></html>

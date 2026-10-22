@@ -1,0 +1,9 @@
+-r requirements.txt
+# Extra dependencies for the previously trained fine-tuned TrOCR checkpoint.
+# CPU inference is possible but slower and requires substantial RAM.
+transformers>=4.47,<5
+torch>=2.3,<3
+opencv-python-headless>=4.8,<5
+numpy>=1.25,<3
+safetensors>=0.4,<1
+sentencepiece>=0.2,<1
