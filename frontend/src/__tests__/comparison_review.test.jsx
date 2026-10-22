@@ -1,10 +1,12 @@
 import React from 'react';
-import {describe,expect,it,vi} from 'vitest';
-import {fireEvent,render,screen} from '@testing-library/react';
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {groupReviewFindings} from '../lib/findings.js';
 import FindingsCenter from '../components/FindingsCenter.jsx';
 import OCRComparison from '../features/OCRComparison.jsx';
 import Upload from '../features/Upload.jsx';
+
+afterEach(()=>cleanup());
 
 describe('clear medication warnings',()=>{
  const issues=[
