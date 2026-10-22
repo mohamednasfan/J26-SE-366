@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import { AlertTriangle, ArrowLeft, BookOpen, Check, ChevronDown, ClipboardCheck, Download, Eye, FileText, LoaderCircle, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import {Badge,EmptyState,Notice} from '../components/Status.jsx';
 import ImageEvidence from '../components/ImageEvidence.jsx';
+import FindingsCenter from '../components/FindingsCenter.jsx';
 import {confirmTranscription,formatEngine,request,saveJSON} from '../lib/api.js';
 export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
  const [editing,setEditing]=useState(false),[audit,setAudit]=useState([]);
@@ -50,16 +51,16 @@ export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
     </div>:<div className="tab-body">
       <Notice type="warning">Clinical clearance is unavailable. All findings are advisory and require a qualified professional.</Notice>
       <div className="findings-summary"><div className="finding-number">{issues.length}</div><div><strong>Screening observations</strong><p>Across {medications.length} medication entries. No autonomous treatment decision.</p></div></div>
-      <div className="findings-list">{issues.length?issues.map((issue,index)=><div className={'finding-item '+(issue.severity==='BLOCK'?'finding-block':'')} key={index}>
-       <AlertTriangle size={18}/><div><strong>{issue.code?.replaceAll('_',' ')||'Review observation'}</strong><p>{issue.message}</p><small>{issue.medicine_index?'Medication '+issue.medicine_index+' · ':''}{issue.severity||'REVIEW'}</small></div></div>):
-      <div className="no-clearance">No extracted warnings were recorded. This does <strong>not</strong> establish clinical safety.</div>}</div>
+      <FindingsCenter issues={issues} onEdit={()=>{setEditing(true);setTab('transcription')}}/>
       <div className="medication-section"><h3>Medication-by-medication evidence</h3>
         {medications.map((med,i)=>{const f=med.extraction?.fields||{},name=f.medicine||'Unidentified medicine';
          return <div className="medication-card" key={i}><div className="medication-top"><div><span className="med-number">MEDICATION {i+1}</span><h4>{name}</h4></div><Badge tone="amber">Needs clinician</Badge></div>
-         <div className="field-summary">{[['Dose',f.dose],['Frequency',f.frequency],['Age',f.age],['Weight',f.weight],['Route',f.route]].map(([label,value])=><div key={label}><small>{label}</small><strong>{value||'Not provided'}</strong></div>)}</div>
+         <div className="field-summary">{[['Administered dose',f.dose],['Strength',f.strength],['Frequency',f.frequency],['Age',f.age],['Weight',f.weight],['Route',f.route]].map(([label,value])=><div key={label}><small>{label}</small><strong>{value||'Not captured — check source'}</strong></div>)}</div>
+         {med.extraction?.candidate_only&&<p className="medication-uncertainty">Unverified OCR candidate. Confirm the actual medicine and dose against the source image.</p>}
          <div className="rule-summary"><div><small>Reviewed dosage rule</small><strong>{med.reviewed_dose_rule?.status?.replaceAll('_',' ')||'NOT EVALUATED'}</strong></div>
           <div><small>Age validation</small><strong>{med.reviewed_age_rule?.status?.replaceAll('_',' ')||'UNABLE TO VALIDATE'}</strong></div></div>
-         <button className="text-link" onClick={()=>{setOpenReference(o=>({...o,[name]:!o[name]}));lookup(name)}}><BookOpen size={16}/> {openReference[name]?'Hide':'Find'} label evidence <ChevronDown size={15}/></button>
+         <p className="medication-uncertainty">{med.reviewed_dose_rule?.status==='NOT_EVALUATED'?'Dose check unavailable: '+(med.reviewed_dose_rule?.reason||'No exact reviewed medication rule.'):'Threshold comparison only; not proof of safety.'} {med.reviewed_age_rule?.status==='UNABLE_TO_VALIDATE'?'Age check unavailable.':''}</p>
+         {f.medicine&&<button className="text-link" onClick={()=>{setOpenReference(o=>({...o,[name]:!o[name]}));lookup(name)}}><BookOpen size={16}/> {openReference[name]?'Hide':'Find'} label evidence <ChevronDown size={15}/></button>}
          {openReference[name]&&<div className="evidence-box"><strong>Reference lookup</strong><p>Status: {references[name]?.status||'Fetching label information…'}</p>
           <p>Drug labels are informational evidence. No recommended dose is inferred automatically without qualified rule review.</p>
           {(references[name]?.dailymed||[]).map((item,i)=><p key={'dm'+i}><a target="_blank" rel="noopener noreferrer" href={item.url}>DailyMed: {item.title} ↗</a> · Search candidate, not confirmed product identity</p>)}
