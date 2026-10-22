@@ -21,3 +21,8 @@ runtime_tools/*.exe
 .idea/
 Thumbs.db
 Desktop.ini
+
+# Generated docs and local UI-test recordings
+docs/MedSafe_AI_Complete_Project_Guide.docx
+test_videos/
+*.webm
