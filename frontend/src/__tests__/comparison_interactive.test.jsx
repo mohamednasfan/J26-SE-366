@@ -1,6 +1,6 @@
 import React from 'react';
 import {afterEach,describe,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen} from '@testing-library/react';
+import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
 
 vi.mock('../lib/api.js', async original=>{
  const real=await original();
@@ -35,9 +35,10 @@ describe('live four-engine comparison interactions',()=>{
   expect(await screen.findByText('Results on this prescription')).toBeTruthy();
   expect(screen.getByText(/Medicine: Alpha/)).toBeTruthy();
   expect(screen.getByText(/No verified transcription provided/)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button',{name:'PaddleOCR'}));
+  const switcher=screen.getByRole('group',{name:'Inspect OCR engine results'});
+  fireEvent.click(within(switcher).getByRole('button',{name:'PaddleOCR'}));
   expect(screen.getByText(/Medicine: Beta/)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button',{name:'CRAFT + TrOCR'}));
+  fireEvent.click(within(switcher).getByRole('button',{name:'CRAFT + TrOCR'}));
   expect(screen.getByText(/Notebook 44 checkpoint missing/)).toBeTruthy();
   expect(request).toHaveBeenCalledTimes(1);
   const payload=request.mock.calls[0][1].body;
