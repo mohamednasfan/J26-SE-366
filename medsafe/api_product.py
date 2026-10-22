@@ -111,49 +111,10 @@ class Review(BaseModel):
 
 
 def _rule_assessment(report):
-    """Optional exact-match, source-reviewed threshold assessment only."""
-    path=Path(os.getenv('MEDSAFE_REVIEWED_RULES',Path(__file__).parent.parent/'reviewed_rules_EMPTY.json'))
-    try:rules=load_reviewed_rules(path)
-    except (RuleRegistryError,ValueError,OSError):rules=[]
-    for m in report.get('medications',[]):
-        fields=m['extraction']['fields']
-        # A clinical rule MUST have separately confirmed product + indication + age population.
-        # These context fields are never silently inferred from patient demographics or OCR.
-        rule=match_rule(rules,ingredient=fields.get('medicine',''),product_identifier=fields.get('product_identifier',''),
-                        route=fields.get('route',''),indication=fields.get('indication',''),
-                        population=fields.get('population','')) if rules else None
-        parsed=number_and_unit(fields.get('dose',''))
-        freq=parse_frequency(fields.get('frequency',''))
-        result=assess_reviewed_rule(rule,dose=parsed[0] if parsed else None,
-                                    unit=parsed[1] if parsed else '',frequency=freq)
-        m['reviewed_dose_rule']=result
-        m['dose_validation_available']=result['status']!='NOT_EVALUATED'
-        age_text=fields.get('age','')
-        from .extraction import parse_age
-        age=parse_age(age_text)
-        age_check={'status':'UNABLE_TO_VALIDATE','reason':'No matched source-reviewed age interval and/or verified age'}
-        if rule is not None and age is not None and type(rule.get('min_age_years')) in (int,float) and type(rule.get('max_age_years')) in (int,float):
-            lo,hi=rule['min_age_years'],rule['max_age_years']
-            if 0<=lo<=hi<=120:
-                age_check={'status':'REVIEW_AGE_RANGE_FLAG' if not lo<=age<=hi else 'WITHIN_REVIEWED_AGE_RANGE_NOT_PROOF_OF_SAFETY',
-                           'source_url':rule['source_url'],'min_age_years':lo,'max_age_years':hi,
-                           'note':'Age-range screen only; not an individual clinical dosing recommendation'}
-        m['reviewed_age_rule']=age_check
-        from .validation import finding
-        index=report['medications'].index(m)+1
-        alerts=[]
-        if result['status']=='REVIEW_THRESHOLD_EXCEEDED':
-            alerts.append(finding('REVIEWED_RULE_THRESHOLD_EXCEEDED','CAUTION',
-                 'The confirmed amount or daily total exceeds a matching source-reviewed threshold; qualified clinician assessment is required. This is a screening flag, not an overdose diagnosis.','dose'))
-        if age_check['status']=='REVIEW_AGE_RANGE_FLAG':
-            alerts.append(finding('REVIEWED_AGE_RANGE_FLAG','CAUTION',
-                 'Patient age falls outside a matching source-reviewed age range; qualified clinician review is required.','age'))
-        for a in alerts:
-            m['issues'].append(a)
-            report['issues'].append(dict(a,medicine_index=index))
-    report['reviewed_rule_count']=len(rules)
-    report['rule_assessment_policy']='Exact reviewed product, indication, route, population, and dose-unit match required. Below a threshold never means safe.'
-    return report
+    """Backwards-compatible wrapper around the dedicated review service."""
+    from backend.app.services.review_service import assess_report
+    return assess_report(report)
+
 
 @app.post('/api/prescriptions/{pid}/review')
 def review(pid:str,payload:Review):
