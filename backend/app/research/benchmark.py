@@ -77,7 +77,8 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True):
                 recognized=recognize(Path(item['_path']).read_bytes(),engine=engine)
                 elapsed=time.perf_counter()-start
                 text=str(recognized.get('text') or '')
-                extracted=extract_prescription(text,allow_unlabeled=True)[0]['fields']
+                blocks=extract_prescription(text,allow_unlabeled=True)
+                extracted=blocks[0]['fields'] if blocks else {}
                 sample={'image_id':item['image_id'],'sha256':item['sha256'],
                         'engine':engine,'transcription':text,'fields':extracted,
                         'elapsed_seconds':round(elapsed,5),'warnings':recognized.get('warnings',[])}
