@@ -5,9 +5,10 @@ import {uploadPrescription,formatEngine} from '../lib/api.js';
 const TYPES=/\.(png|jpe?g|webp|pdf)$/i;
 export default function Upload({models={},onUploaded}){
  const ref=useRef(null);const [file,setFile]=useState(null),[engine,setEngine]=useState('tesseract');
+ const [preprocess,setPreprocess]=useState('none');
  const [drag,setDrag]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const select=(f)=>{if(!f)return;if(!TYPES.test(f.name)){setError('Choose a PNG, JPG, WEBP, or single-page PDF.');return}if(f.size>12*1024*1024){setError('Maximum file size is 12 MB.');return}setFile(f);setError('')};
- const submit=async()=>{if(!file)return;setBusy(true);setError('');try{const result=await uploadPrescription(file,engine);await onUploaded(result.id)}catch(e){setError(e.message)}finally{setBusy(false)}};
+ const submit=async()=>{if(!file)return;setBusy(true);setError('');try{const result=await uploadPrescription(file,engine,preprocess);await onUploaded(result.id)}catch(e){setError(e.message)}finally{setBusy(false)}};
  const engines=[['tesseract','Tesseract','Baseline OCR'],['easyocr','EasyOCR','Deep learning OCR'],['paddleocr','PaddleOCR','Document OCR'],['craft_trocr','CRAFT + TrOCR','Detection + handwritten recognition']];
  return <div className="upload-layout"><section className="surface upload-card">
   <div className="section-top"><div><h3>Upload prescription</h3><p>Use an image or one-page PDF. No text is considered verified until you review it.</p></div><div className="step-label">STEP 01 / 03</div></div>
@@ -20,6 +21,16 @@ export default function Upload({models={},onUploaded}){
   {file&&<div className="selected-file"><FileImage size={20}/><div><strong>{file.name}</strong><small>{(file.size/1024/1024).toFixed(2)} MB · Ready to analyze</small></div><button className="icon-button" aria-label="Remove file" onClick={()=>setFile(null)}><X size={18}/></button></div>}
   <div className="form-label">OCR engine</div><div className="engine-grid">{engines.map(([id,label,description])=><button key={id} type="button" onClick={()=>setEngine(id)}
    className={'engine-option'+(engine===id?' active':'')}><div className="radio-indicator"/><strong>{label}</strong><span>{description}</span>{models.benchmark_engines?.[id==='craft_trocr'?'trocr':id]===false&&<small>Requires local model setup</small>}</button>)}</div>
+  <label className="form-label" htmlFor="preprocessing-mode">Image preprocessing</label>
+  <div className="preprocessing-control">
+    <select id="preprocessing-mode" value={preprocess} onChange={e=>setPreprocess(e.target.value)}>
+      <option value="none">Original image — no changes (fair baseline)</option>
+      <option value="clahe">Contrast enhancement + denoising (CLAHE)</option>
+      <option value="adaptive">Adaptive black-and-white threshold</option>
+      <option value="deskew_clahe">Automatic deskew + contrast enhancement</option>
+    </select>
+    <p>Only the OCR input is processed. Your original document remains unchanged for manual verification.</p>
+  </div>
   {error&&<Notice type="error">{error}</Notice>}
   <button className="button button-primary submit-upload" disabled={!file||busy} onClick={submit}>{busy?<><LoaderCircle size={19} className="spin"/> Processing image…</>:<>Run OCR analysis <ArrowRight size={19}/></>}</button>
  </section>

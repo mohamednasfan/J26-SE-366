@@ -42,7 +42,7 @@ def evaluate(records):
     elapsed_metrics=latency_metrics(rows)
     return {'age_alerts':age_metrics,'timing':elapsed_metrics,'n':len(rows),'fields':{f:{**c,'accuracy':c['correct']/c['total'] if c['total'] else None} for f,c in counts.items()},
             'ocr':{'CER':errors/chars if chars else None,'WER':word_errors/words if words else None,'reference_characters':chars,'reference_words':words},
-            'alerts':{'tp':tp,'fp':fp,'fn':fn,'tn':tn,'precision':tp/(tp+fp) if tp+fp else None,'recall':tp/(tp+fn) if tp+fn else None}}
+            'alerts':{'n':tp+fp+fn+tn,'tp':tp,'fp':fp,'fn':fn,'tn':tn,'precision':tp/(tp+fp) if tp+fp else None,'recall':tp/(tp+fn) if tp+fn else None, 'accuracy':(tp+tn)/(tp+fp+fn+tn) if tp+fp+fn+tn else None}}
 
 def classification_metrics(rows, gold_key, predicted_key):
     """Report exact binary classifications; missing paired labels never become negatives."""

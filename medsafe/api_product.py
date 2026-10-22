@@ -14,6 +14,7 @@ from .pipeline import analyze_text
 from .rule_registry import load_reviewed_rules, match_rule, assess_reviewed_rule, RuleRegistryError
 from .extraction import number_and_unit,parse_frequency
 from .references import lookup
+from .preprocessing import prepare_ocr_bytes, MODES
 
 app=FastAPI(title='MedSafe-AI | Prescription Intelligence', version='1.0.0',
             description='Research prototype. All OCR is unverified. No clinical approval or automated dispensing.')
@@ -54,7 +55,9 @@ def stats():
             'research_status':'No validated independent OCR accuracy or approved drug-dose rule collection installed'}
 
 @app.post('/api/prescriptions')
-async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+async def upload(file:UploadFile=File(...),
+                 engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$'),
+                 preprocess:str=Query('none',pattern='^(none|clahe|adaptive|deskew_clahe)$')):
     started=time.perf_counter()
     name=(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
     suffix=Path(name).suffix.lower()
@@ -62,9 +65,15 @@ async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern=
     content=await file.read(MAX_SIZE+1)
     if len(content)>MAX_SIZE:raise HTTPException(413,'Maximum upload size: 12 MB')
     data,ext=_raster(content,suffix)
-    try:ocr=recognize(data,engine=engine)
+    # Preserve the source bytes for review; apply enhancement to OCR input only.
+    try:
+        ocr_input,prep=prepare_ocr_bytes(data,mode=preprocess)
+    except (RuntimeError,ValueError) as exc:
+        raise HTTPException(422,'Image preprocessing unavailable or invalid: '+str(exc)[:250]) from exc
+    try:ocr=recognize(ocr_input,engine=engine)
     except (OCRUnavailable,RuntimeError) as e:raise HTTPException(503,str(e)) from e
     except ValueError as e:raise HTTPException(422,str(e)) from e
+    ocr['preprocessing']=prep
     ocr['processing_seconds']=round(time.perf_counter()-started,4)
     pid=storage.create(name,ext,engine,ocr)
     (storage.DATA/(pid+ext)).write_bytes(data)
@@ -73,14 +82,16 @@ async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern=
             'clinical_clearance':False,'can_auto_dispense':False}
 
 @app.post('/api/prescriptions/batch')
-async def upload_batch(files:list[UploadFile]=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+async def upload_batch(files:list[UploadFile]=File(...),
+                       engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$'),
+                       preprocess:str=Query('none',pattern='^(none|clahe|adaptive|deskew_clahe)$')):
     """Process a bounded local batch while preserving per-image review state."""
     if not files or len(files)>32:
         raise HTTPException(422,'Batch size must be between 1 and 32 files.')
     results=[]
     for file in files:
         try:
-            results.append(await upload(file,engine))
+            results.append(await upload(file,engine,preprocess))
         except HTTPException as exc:
             results.append({'filename':file.filename or 'prescription','status':'FAILED','error':exc.detail})
     return {'items':results,'count':len(results),'clinical_clearance':False,'requires_professional_review':True}

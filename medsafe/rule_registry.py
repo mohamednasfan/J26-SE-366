@@ -102,10 +102,17 @@ def assess_reviewed_rule(rule, *, dose, unit, frequency, weight_kg=None):
     """Return screening flags only; a below-threshold value never means safe."""
     unresolved={'status':'NOT_EVALUATED','clinical_clearance':False,
                 'reason':'Missing exact reviewed rule, unit, or valid administered dose context'}
-    if (not isinstance(rule,dict) or unit!=rule.get('dose_unit') or
-        type(frequency) is not int or not 1<=frequency<=24 or
-        not _positive_finite_number(dose) or
+    if (not isinstance(rule,dict) or type(frequency) is not int or
+        not 1<=frequency<=24 or not _positive_finite_number(dose) or
         not all(_positive_finite_number(rule.get(k)) for k in ('max_single','max_daily'))):
+        return unresolved
+    # Mass conversions are dimensionally exact; volume-to-mass conversion is
+    # deliberately forbidden without formulation-specific concentration.
+    mass_to_mg={'mcg':0.001,'mg':1.0,'g':1000.0}
+    if unit not in mass_to_mg or rule.get('dose_unit') not in mass_to_mg:
+        return unresolved
+    normalized_dose=dose * mass_to_mg[unit] / mass_to_mg[rule['dose_unit']]
+    if not math.isfinite(normalized_dose) or normalized_dose<=0:
         return unresolved
     if rule.get('review_status') not in (None,'APPROVED_BY_QUALIFIED_REVIEWER'):
         return unresolved
@@ -119,14 +126,17 @@ def assess_reviewed_rule(rule, *, dose, unit, frequency, weight_kg=None):
     if weighted:
         max_single=min(max_single,float(rule['max_single_mg_per_kg'])*weight_kg)
         max_daily=min(max_daily,float(rule['max_daily_mg_per_kg'])*weight_kg)
-    total=dose*frequency
-    exceeded=dose>max_single or total>max_daily
+    total=normalized_dose*frequency
+    if not math.isfinite(total):
+        return unresolved
+    exceeded=normalized_dose>max_single or total>max_daily
     return {
         'status':'REVIEW_THRESHOLD_EXCEEDED' if exceeded
                  else 'BELOW_REVIEWED_THRESHOLD_NOT_PROOF_OF_SAFETY',
         'source_url':rule.get('source_url'),'source_section':rule.get('source_section'),
         'reviewer':rule.get('reviewer'),'rule_version':rule.get('version'),
-        'dose_unit':unit,'administered_single':dose,'administered_daily':total,
+        'dose_unit':rule['dose_unit'],'reported_dose':dose,'reported_unit':unit,
+        'administered_single':normalized_dose,'administered_daily':total,
         'reviewed_max_single':max_single,'reviewed_max_daily':max_daily,
         'weight_based':weighted,
         'reviewed_adverse_effects':list(rule.get('overdose_adverse_effects',[])) if exceeded else [],
