@@ -245,8 +245,11 @@ def recognize(data:bytes,engine='craft_trocr'):
     image=decode_image(data)
     if engine=='tesseract':
         raw=_tesseract(image)
-        return {'text':raw['text'],'engine':'tesseract','regions':[], 'boxes':[],
-                'warnings':['TESSERACT_BASELINE_NOT_HANDWRITING_OPTIMIZED','OCR_NOT_VERIFIED'],
+        regions=raw.get('token_regions',[])
+        return {'text':raw['text'],'engine':'tesseract','regions':regions,
+                'boxes':[item['box'] for item in regions],
+                'warnings':['TESSERACT_BASELINE_NOT_HANDWRITING_OPTIMIZED','OCR_NOT_VERIFIED',
+                            'TOKEN_CONFIDENCE_NOT_CLINICALLY_CALIBRATED'],
                 'confidence':None,'width':image.width,'height':image.height}
     if engine == 'easyocr':
         try:

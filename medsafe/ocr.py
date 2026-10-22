@@ -72,13 +72,21 @@ def _tesseract(image: Image.Image) -> dict:
     except (pytesseract.TesseractNotFoundError,RuntimeError) as exc:
         raise RuntimeError('Tesseract executable unavailable; install the OCR dependency.') from exc
     conf=[]
-    for word,score in zip(data['text'],data['conf']):
+    token_regions=[]
+    for idx,(word,score) in enumerate(zip(data['text'],data['conf'])):
         if not str(word).strip():continue
         try: s=float(score)
         except (TypeError,ValueError):continue
-        if 0<=s<=100:conf.append(s/100)
+        if 0<=s<=100:
+            conf.append(s/100)
+            x,y,w,h=(int(data[k][idx]) for k in ('left','top','width','height'))
+            if w>0 and h>0:
+                token_regions.append({'id':len(token_regions)+1,'text':str(word).strip(),
+                                      'box':[x,y,x+w,y+h],'confidence':round(s/100,4),
+                                      'confidence_is_calibrated':False,'verified':False})
     transcript = _normalize_ocr_labels(transcript)
-    return {'text':transcript,'confidence':round(statistics.mean(conf),3) if conf else 0.0,
+    return {'text':transcript,'token_regions':token_regions,
+            'confidence':round(statistics.mean(conf),3) if conf else 0.0,
             'engine':'tesseract','confident_token_count':sum(c>=.85 for c in conf),
             'confidence_is_calibrated':False, 'region_count':None,
             'segmentation_method':'tesseract_full_page_layout'}

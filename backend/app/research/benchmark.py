@@ -167,12 +167,22 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
                 text = str(recognized.get("text") or "")
                 blocks = extract_prescription(text, allow_unlabeled=True)
                 extracted = blocks[0]["fields"] if blocks else {}
+                # Multi-drug prescriptions must not be silently scored as if
+                # the first medication represented the entire prescription.
+                if len(blocks) > 1:
+                    extracted = dict(extracted)
+                    for key in ("medicine", "dose", "frequency", "strength", "route"):
+                        extracted[key] = " | ".join(
+                            str(block["fields"].get(key, "")) for block in blocks
+                        )
                 if require_human:
                     dose_flag, age_flag = _reviewed_screen(text)
                 else:
+                    # One synthetic rule belongs to one medicine only. Never
+                    # project the first rule onto a multi-medicine prescription.
                     dose_flag, age_flag = _synthetic_screen(
-                        extracted, item.get("synthetic_rule")
-                    )
+                        blocks[0]["fields"], item.get("synthetic_rule")
+                    ) if len(blocks)==1 else (None, None)
                 elapsed = time.perf_counter() - start
                 rec = {
                     "gold": item["gold"], "predicted": extracted,
@@ -215,10 +225,12 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
             "dose_alert_evaluated_n": dose_coverage,
             "age_alert_evaluated_n": age_coverage,
             "thesis_eligible": bool(
-                complete and require_human
+                complete and require_human and len(rows) >= 50
                 and dose_coverage == len(rows) and age_coverage == len(rows)
                 and metrics["alerts"]["tp"] + metrics["alerts"]["fn"] > 0
                 and metrics["alerts"]["tn"] + metrics["alerts"]["fp"] > 0
+                and metrics["age_alerts"]["tp"] + metrics["age_alerts"]["fn"] > 0
+                and metrics["age_alerts"]["tn"] + metrics["age_alerts"]["fp"] > 0
             ) if metrics else False,
             "error_count": len(failures), "errors": failures,
             "predictions": samples,

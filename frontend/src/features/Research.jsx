@@ -9,16 +9,18 @@ const targets=[
 ];
 export default function Research({research={},models={},historical={},benchmarks={}}){
  const installed=models.benchmark_engines||{};
+ const [selectedVariant,setSelectedVariant]=React.useState('original');
  return <div className="stack-lg">
    <div className="research-banner"><div className="research-banner-icon"><BrainCircuit size={27}/></div>
     <div><h2>Reproducible OCR evaluation</h2><p>Four engines, shared held-out images and human-verified references. Model installation does not imply validated accuracy.</p></div>
     <Badge tone="amber">Independent results required</Badge></div>
    <OCRComparison/>
    {historical.n_aligned_images>0&&<section className="surface"><div className="section-top"><div><h3>Archived four-engine comparison</h3><p>{historical.n_aligned_images} matching original-variant medicine-word images · earlier experiment, not final trained checkpoint</p></div><Badge tone="amber">Historical baseline</Badge></div>
+    {historical.variants&&<label className="research-evidence-note">Preprocessing condition: <select aria-label="Historical OCR preprocessing condition" value={selectedVariant} onChange={e=>setSelectedVariant(e.target.value)}>{Object.keys(historical.variants).map(v=><option key={v} value={v}>{v}</option>)}</select></label>}
     <div className="table-scroll"><table className="data-table"><thead><tr><th>OCR engine</th><th>Character error</th><th>Word error</th><th>Medicine accuracy</th></tr></thead>
     <tbody>{Object.entries(historical.engines||{}).map(([name,metrics])=><tr key={name}><td><strong>{name==='trocr_historical'?'TrOCR (historical)':name.charAt(0).toUpperCase()+name.slice(1)}</strong></td>
-      <td>{(metrics.micro_CER*100).toFixed(2)}%</td><td>{(metrics.micro_WER*100).toFixed(2)}%</td><td><span className="target-number">{(metrics.medicine_accuracy*100).toFixed(2)}%</span> <small>({metrics.correct}/780)</small></td></tr>)}</tbody></table></div>
-    <div className="research-evidence-note">These matched word-image measurements come from the archived Kaggle-dataset experiment; they do not assess age, administered doses, or the later Notebook 44 fine-tuned TrOCR model.</div>
+      <td>{((historical.variants?.[selectedVariant]?.[name]?.CER??metrics.micro_CER)*100).toFixed(2)}%</td><td>{selectedVariant==='original'?(metrics.micro_WER*100).toFixed(2)+'%':'—'}</td><td><span className="target-number">{((historical.variants?.[selectedVariant]?.[name]?.medicine_accuracy??metrics.medicine_accuracy)*100).toFixed(2)}%</span> <small>{selectedVariant==='original'?`(${metrics.correct}/780)`:'(780 images)'}</small></td></tr>)}</tbody></table></div>
+    <div className="research-evidence-note">These aligned medicine-word measurements come from earlier experiment CSVs. Variants reflect archived image preprocessing, not independently annotated capture conditions. They do not assess age, administered doses, or the later Notebook 44 fine-tuned TrOCR model.</div>
    </section>}
    <section className="surface"><div className="section-top"><div><h3>Current held-out benchmark</h3><p>Results appear when a human-verified test manifest has been evaluated by all selected OCR engines</p></div><Badge tone={benchmarks.status==='HUMAN_VERIFIED_TEST'?'teal':'amber'}>{benchmarks.status==='HUMAN_VERIFIED_TEST'?'Human-verified cohort':'No verified run configured'}</Badge></div>
    {Object.keys(benchmarks.engines||{}).length>0?<div className="table-scroll"><table className="data-table"><thead><tr><th>Engine</th><th>OCR coverage</th><th>CER</th><th>Medicine name</th><th>Dose alerts evaluated</th><th>Age alerts evaluated</th><th>95th-percentile time</th></tr></thead>

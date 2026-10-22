@@ -21,8 +21,14 @@ def test_unreviewed_rules_rejected(tmp_path):
     with pytest.raises(RuleRegistryError):load_reviewed_rules(p)
 
 def test_exact_context_required():
-    r={'ingredient':'x','product_identifier':'id','route':'oral','indication':'a','population':'adult','dose_unit':'mg','max_single':10,'max_daily':20,'source_url':'https://example.org','reviewer':'reviewer','version':'1'}
+    r={'ingredient':'x','product_identifier':'id','route':'oral','indication':'a','population':'adult','dose_unit':'mg','max_single':10,'max_daily':20,'source_url':'https://example.org','reviewer':'reviewer','version':'1',
+       'review_status':'APPROVED_BY_QUALIFIED_REVIEWER'}
     assert match_rule([r],ingredient='x',product_identifier='id',route='iv',indication='a',population='adult') is None
     assert assess_reviewed_rule(r,dose=15,unit='mg',frequency=2)['status']=='REVIEW_THRESHOLD_EXCEEDED'
     assert assess_reviewed_rule(r,dose=5,unit='ml',frequency=2)['status']=='NOT_EVALUATED'
     assert assess_reviewed_rule(r,dose=5,unit='mg',frequency=2)['clinical_clearance'] is False
+
+
+def test_statusless_threshold_cannot_be_assessed():
+    rule={'dose_unit':'mg','max_single':10,'max_daily':20}
+    assert assess_reviewed_rule(rule,dose=15,unit='mg',frequency=2)['status']=='NOT_EVALUATED'
