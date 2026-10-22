@@ -68,6 +68,8 @@ def read_manifest(manifest: Path, *, require_human=True):
         })
     if not rows:
         raise ValueError("No labeled image rows in manifest")
+    if require_human and len(rows) < 50:
+        raise ValueError("Independent thesis evaluation requires at least 50 held-out verified images")
     ids = [row["image_id"] for row in rows]
     hashes = [row["sha256"] for row in rows]
     if len(ids) != len(set(ids)) or len(hashes) != len(set(hashes)):
@@ -167,11 +169,18 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
                 text = str(recognized.get("text") or "")
                 blocks = extract_prescription(text, allow_unlabeled=True)
                 extracted = blocks[0]["fields"] if blocks else {}
+                # Multi-drug prescriptions must not be silently scored as if
+                # the first medication represented the entire prescription.
+                if len(blocks) > 1:
+                    extracted = dict(extracted)
+                    extracted["medicine"] = " | ".join(
+                        str(block["fields"].get("medicine", "")) for block in blocks
+                    )
                 if require_human:
                     dose_flag, age_flag = _reviewed_screen(text)
                 else:
                     dose_flag, age_flag = _synthetic_screen(
-                        extracted, item.get("synthetic_rule")
+                        blocks[0]["fields"] if blocks else {}, item.get("synthetic_rule")
                     )
                 elapsed = time.perf_counter() - start
                 rec = {
@@ -219,6 +228,8 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
                 and dose_coverage == len(rows) and age_coverage == len(rows)
                 and metrics["alerts"]["tp"] + metrics["alerts"]["fn"] > 0
                 and metrics["alerts"]["tn"] + metrics["alerts"]["fp"] > 0
+                and metrics["age_alerts"]["tp"] + metrics["age_alerts"]["fn"] > 0
+                and metrics["age_alerts"]["tn"] + metrics["age_alerts"]["fp"] > 0
             ) if metrics else False,
             "error_count": len(failures), "errors": failures,
             "predictions": samples,
