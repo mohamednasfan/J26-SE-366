@@ -6,6 +6,8 @@ Install Python 3.11/3.12, Node.js 20+ with npm, and Tesseract if using its basel
 
 For the optional neural OCR engines, install `requirements-ocr.txt`. Set `MEDSAFE_TROCR_MODEL_DIR` to the **existing Notebook 44 checkpoint directory** containing `model.safetensors` and tokenizer/processor/config files. The application reports unavailable models explicitly and never substitutes a pretrained public TrOCR for the fine-tuned research model.
 
+The **Research** page also includes an interactive four-engine OCR comparison. Upload a fictional or appropriately authorized single-page prescription; the endpoint `/api/compare` sends the same prepared image to each installed OCR engine, reports unverified transcriptions and elapsed times, and does not retain the comparison image. This is an exploratory preview, not a labeled thesis accuracy evaluation.
+
 ---
 
 ## Archived setup instructions (historical; may describe the older offline interface)

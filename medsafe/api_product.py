@@ -185,6 +185,8 @@ def research():
 # Versioned research-service router; register before the frontend catch-all.
 from backend.app.api.routes.research_results import router as research_results_router
 app.include_router(research_results_router)
+from backend.app.api.routes.ocr_compare import router as ocr_compare_router
+app.include_router(ocr_compare_router)
 
 @app.get('/{path:path}')
 def frontend(path:str):
