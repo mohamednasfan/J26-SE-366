@@ -1,0 +1,43 @@
+{
+  "schema": "medsafe.historical_baseline.v1",
+  "cohort": "Doctor Handwritten Prescription BD (testing_words)",
+  "source": "User-provided MedSafe_AI.zip, existing original-variant testing_results.csv files",
+  "n_aligned_images": 780,
+  "reference_chars": 4940,
+  "reference_words": 790,
+  "method": "Case-insensitive Levenshtein distance, micro-aggregated across identical aligned image IDs; medicine exact match casefold + normalized spaces",
+  "alignment": "All 780 original-variant image IDs present in every engine; zero ground-truth label mismatches",
+  "engines": {
+    "tesseract": {
+      "micro_CER": 0.612753,
+      "micro_WER": 1.287342,
+      "medicine_accuracy": 0.075641,
+      "correct": 59
+    },
+    "easyocr": {
+      "micro_CER": 0.545951,
+      "micro_WER": 1.116456,
+      "medicine_accuracy": 0.103846,
+      "correct": 81
+    },
+    "paddleocr": {
+      "micro_CER": 0.175911,
+      "micro_WER": 0.563291,
+      "medicine_accuracy": 0.451282,
+      "correct": 352
+    },
+    "trocr_historical": {
+      "micro_CER": 0.584615,
+      "micro_WER": 1.421519,
+      "medicine_accuracy": 0.132051,
+      "correct": 103
+    }
+  },
+  "limitations": [
+    "Word-level medicine images only, not complete prescription fields",
+    "Historical TrOCR run is not the subsequent Notebook 44 fine-tuned checkpoint",
+    "Dosage, age validation and overdose classification not measured",
+    "Independent human re-adjudication and leakage validation not established",
+    "No claim that this satisfies final thesis acceptance criteria"
+  ]
+}
