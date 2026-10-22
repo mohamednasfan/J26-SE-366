@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
-if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python setup_and_verify_models.py --install
-.venv/bin/python start_product.py
+exec bash ./start_linux_mac.sh
