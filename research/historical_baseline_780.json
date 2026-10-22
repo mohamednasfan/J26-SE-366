@@ -39,5 +39,117 @@
     "Dosage, age validation and overdose classification not measured",
     "Independent human re-adjudication and leakage validation not established",
     "No claim that this satisfies final thesis acceptance criteria"
-  ]
+  ],
+  "variant_method": "Prior saved per-engine CSV predictions aligned across the same 780 Testing image IDs for each preprocessing variant; recalculated micro CER and exact-match medicine accuracy. Historical TrOCR is NOT Notebook44.",
+  "variants": {
+    "original": {
+      "tesseract": {
+        "CER": 0.612753,
+        "medicine_accuracy": 0.075641
+      },
+      "easyocr": {
+        "CER": 0.545951,
+        "medicine_accuracy": 0.103846
+      },
+      "paddleocr": {
+        "CER": 0.175911,
+        "medicine_accuracy": 0.451282
+      },
+      "trocr_historical": {
+        "CER": 0.584615,
+        "medicine_accuracy": 0.132051
+      }
+    },
+    "grayscale": {
+      "tesseract": {
+        "CER": 0.6128,
+        "medicine_accuracy": 0.0769
+      },
+      "easyocr": {
+        "CER": 0.5453,
+        "medicine_accuracy": 0.1077
+      },
+      "paddleocr": {
+        "CER": 0.1757,
+        "medicine_accuracy": 0.4538
+      },
+      "trocr_historical": {
+        "CER": 0.5816,
+        "medicine_accuracy": 0.1333
+      }
+    },
+    "resized": {
+      "tesseract": {
+        "CER": 0.6289,
+        "medicine_accuracy": 0.0513
+      },
+      "easyocr": {
+        "CER": 0.5943,
+        "medicine_accuracy": 0.0641
+      },
+      "paddleocr": {
+        "CER": 0.2573,
+        "medicine_accuracy": 0.3846
+      },
+      "trocr_historical": {
+        "CER": 0.7168,
+        "medicine_accuracy": 0.091
+      }
+    },
+    "contrast": {
+      "tesseract": {
+        "CER": 0.6269,
+        "medicine_accuracy": 0.059
+      },
+      "easyocr": {
+        "CER": 0.5951,
+        "medicine_accuracy": 0.0538
+      },
+      "paddleocr": {
+        "CER": 0.2686,
+        "medicine_accuracy": 0.3628
+      },
+      "trocr_historical": {
+        "CER": 0.6694,
+        "medicine_accuracy": 0.0833
+      }
+    },
+    "thresholded": {
+      "tesseract": {
+        "CER": 0.634,
+        "medicine_accuracy": 0.0474
+      },
+      "easyocr": {
+        "CER": 0.6474,
+        "medicine_accuracy": 0.0474
+      },
+      "paddleocr": {
+        "CER": 0.2249,
+        "medicine_accuracy": 0.3692
+      },
+      "trocr_historical": {
+        "CER": 0.8462,
+        "medicine_accuracy": 0.0731
+      }
+    },
+    "denoised": {
+      "tesseract": {
+        "CER": 0.6251,
+        "medicine_accuracy": 0.0564
+      },
+      "easyocr": {
+        "CER": 0.586,
+        "medicine_accuracy": 0.0641
+      },
+      "paddleocr": {
+        "CER": 0.214,
+        "medicine_accuracy": 0.4115
+      },
+      "trocr_historical": {
+        "CER": 0.6038,
+        "medicine_accuracy": 0.1154
+      }
+    }
+  },
+  "variants_note": "Derived from previously stored experiment outputs, not fresh inference or independently reviewed dosage/clinical cases. Values other than original rounded to four decimals."
 }
