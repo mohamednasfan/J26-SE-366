@@ -28,7 +28,7 @@ def benchmark_results():
             results[name]={
                 'n_total':entry.get('n_total'), 'n_succeeded':entry.get('n_succeeded'),
                 'coverage':entry.get('coverage'),
-                'ocr_eligible':entry.get('ocr_eligible') is True,
+                'ocr_eligible':entry.get('ocr_eligible', entry.get('thesis_eligible')) is True,
                 'thesis_eligible':entry.get('thesis_eligible') is True,
                 'dose_alert_evaluated_n':entry.get('dose_alert_evaluated_n',0),
                 'age_alert_evaluated_n':entry.get('age_alert_evaluated_n',0),
