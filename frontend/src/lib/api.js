@@ -19,9 +19,9 @@ export function formatDate(value) {
 export const formatEngine = value => ({
   tesseract:'Tesseract',easyocr:'EasyOCR',paddleocr:'PaddleOCR',craft_trocr:'CRAFT + TrOCR'
 }[value] || value || 'Unknown');
-export async function uploadPrescription(file,engine) {
+export async function uploadPrescription(file,engine,preprocess='none') {
   const payload=new FormData(); payload.append('file',file);
-  return request('/prescriptions?engine='+encodeURIComponent(engine),{method:'POST',body:payload});
+  return request('/prescriptions?engine='+encodeURIComponent(engine)+'&preprocess='+encodeURIComponent(preprocess),{method:'POST',body:payload});
 }
 export async function confirmTranscription(id,corrected_text) {
   return request('/prescriptions/'+encodeURIComponent(id)+'/review',{
