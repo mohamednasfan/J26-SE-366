@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import { AlertTriangle, ArrowLeft, BookOpen, Check, ChevronDown, ClipboardCheck, Download, Eye, FileText, LoaderCircle, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import {Badge,EmptyState,Notice} from '../components/Status.jsx';
+import ImageEvidence from '../components/ImageEvidence.jsx';
 import {confirmTranscription,formatEngine,request,saveJSON} from '../lib/api.js';
 export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
  const [editing,setEditing]=useState(false),[audit,setAudit]=useState([]);
@@ -24,7 +25,13 @@ export default function PrescriptionWorkspace({detail,onReviewed,onDeleted}){
    <div className={'workflow-stage '+(reviewed?'is-current':'is-upcoming')}><span>3</span><strong>03 · Safety review</strong></div></div>
   <div className="review-grid">
    <section className="surface preview-surface"><div className="section-top"><div><h3>Original prescription</h3><p>Source image for manual cross-checking</p></div><Eye size={19} className="muted-icon"/></div>
-     <div className="preview-frame"><img src={detail.image_url} alt="Uploaded prescription; compare against OCR text" /></div>
+     <div className="preview-frame"><ImageEvidence src={detail.image_url}
+       width={detail.ocr?.width} height={detail.ocr?.height}
+       regions={detail.ocr?.regions||[]} alt="Uploaded prescription; compare against OCR text"/></div>
+     {detail.ocr?.preprocessing?.quality?.warnings?.length>0&&<div className="image-quality-flags">
+      <strong>Image-quality diagnostics (not clinical confidence)</strong>
+      {detail.ocr.preprocessing.quality.warnings.map((warning,i)=><span key={i}>{warning.replaceAll('_',' ')}</span>)}
+     </div>
      <div className="preview-footer"><span>OCR: <strong>{formatEngine(detail.engine)}</strong>{detail.ocr?.processing_seconds!=null?' · '+detail.ocr.processing_seconds+' seconds':''}{detail.ocr?.preprocessing?.mode&&detail.ocr.preprocessing.mode!=='none'?' · '+detail.ocr.preprocessing.mode.replaceAll('_',' '):''}</span><Badge tone="amber">Image text unverified</Badge></div>
    </section>
    <section className="surface findings-surface"><div className="tabs" role="tablist" aria-label="Prescription review sections">
