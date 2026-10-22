@@ -114,7 +114,8 @@ def assess_reviewed_rule(rule, *, dose, unit, frequency, weight_kg=None):
     normalized_dose=dose * mass_to_mg[unit] / mass_to_mg[rule['dose_unit']]
     if not math.isfinite(normalized_dose) or normalized_dose<=0:
         return unresolved
-    if rule.get('review_status') not in (None,'APPROVED_BY_QUALIFIED_REVIEWER'):
+    # Direct callers must not bypass the approval gate by omitting the status.
+    if rule.get('review_status') != 'APPROVED_BY_QUALIFIED_REVIEWER':
         return unresolved
     weighted=('max_single_mg_per_kg' in rule or 'max_daily_mg_per_kg' in rule)
     if weighted and (unit!='mg' or not _positive_finite_number(weight_kg) or
