@@ -198,6 +198,10 @@ def research():
             'reference_policy':'DailyMed/openFDA are identity/evidence sources; no dose rule is treated as approved without product, route, indication, population, source, and qualified review.',
             'clinical_clearance':False}
 
+# Versioned research-service router; register before the frontend catch-all.
+from backend.app.api.routes.research_results import router as research_results_router
+app.include_router(research_results_router)
+
 @app.get('/{path:path}')
 def frontend(path:str):
     dist=Path(__file__).parent.parent/'frontend'/'dist'
