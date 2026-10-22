@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 cd "$(dirname "$0")"
-if [ ! -d .venv ]; then python3 -m venv .venv; fi
-source .venv/bin/activate
-python -m pip install -r requirements-product.txt
-echo 'MedSafe-AI launching at http://127.0.0.1:8000'
-echo 'To install AI OCR: python -m pip install -r requirements-ocr.txt'
-python start_product.py
+if ! command -v npm >/dev/null 2>&1; then
+  echo "Node.js 20+ and npm are required for the redesigned React interface."
+  exit 1
+fi
+if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
+.venv/bin/python -m pip install -r requirements-product.txt
+.venv/bin/python start_product.py
