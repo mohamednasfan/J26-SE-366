@@ -54,7 +54,9 @@ def stats():
             'research_status':'No validated independent OCR accuracy or approved drug-dose rule collection installed'}
 
 @app.post('/api/prescriptions')
-async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
+async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+    started=time.perf_counter()
+    name=(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
     suffix=Path(name).suffix.lower()
     if suffix not in ALLOWED:raise HTTPException(415,'Upload PNG, JPG, WEBP or single-page PDF')
     content=await file.read(MAX_SIZE+1)
