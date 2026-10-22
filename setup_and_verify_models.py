@@ -12,7 +12,7 @@ import traceback
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
-DEFAULT_MODEL=str(ROOT / "02_models" / "trocr_finetuned_experimental_notebook35" / "best_model_EXPERIMENTAL")
+DEFAULT_MODEL=str(ROOT / "02_models" / "trocr_notebook44" / "best_model_DEVELOPMENT_ONLY")
 
 def run(cmd):
     print("+", " ".join(map(str,cmd)), flush=True)
@@ -26,7 +26,7 @@ def main(argv=None):
     ap.add_argument("--output",type=Path,default=ROOT/"runtime_data"/"ocr_model_smoke_test.json")
     ap.add_argument("--model-id",default=DEFAULT_MODEL,help="Local verified MedSafe-AI research checkpoint directory")
     args=ap.parse_args(argv)
-    os.environ["MEDSAFE_RESEARCH_TROCR"]=args.model_id
+    os.environ["MEDSAFE_TROCR_MODEL_DIR"]=args.model_id
     os.environ.setdefault("HF_HOME",str(ROOT/"model_cache"/"huggingface"))
     os.environ.setdefault("EASYOCR_MODULE_PATH",str(ROOT/"model_cache"/"easyocr"))
     Path(os.environ["HF_HOME"]).mkdir(parents=True,exist_ok=True)

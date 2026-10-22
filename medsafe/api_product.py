@@ -1,6 +1,6 @@
 """MedSafe-AI thesis web application API. Local research deployment only."""
 from __future__ import annotations
-import base64,io,json,re,os
+import base64,io,json,re,os,time
 from pathlib import Path
 from typing import Any
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query
@@ -55,6 +55,7 @@ def stats():
 
 @app.post('/api/prescriptions')
 async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern='^(craft_trocr|easyocr|paddleocr|tesseract)$')):
+    started=time.perf_counter()
     name=(file.filename or 'prescription').split('/')[-1].split('\\')[-1]
     suffix=Path(name).suffix.lower()
     if suffix not in ALLOWED:raise HTTPException(415,'Upload PNG, JPG, WEBP or single-page PDF')
@@ -64,10 +65,11 @@ async def upload(file:UploadFile=File(...),engine:str=Query('tesseract',pattern=
     try:ocr=recognize(data,engine=engine)
     except (OCRUnavailable,RuntimeError) as e:raise HTTPException(503,str(e)) from e
     except ValueError as e:raise HTTPException(422,str(e)) from e
+    ocr['processing_seconds']=round(time.perf_counter()-started,4)
     pid=storage.create(name,ext,engine,ocr)
     (storage.DATA/(pid+ext)).write_bytes(data)
     return {'id':pid,'filename':name,'status':'REVIEW_REQUIRED','ocr':ocr,
-            'image_url':f'/api/prescriptions/{pid}/image',
+            'image_url':f'/api/prescriptions/{pid}/image','processing_seconds':ocr['processing_seconds'],
             'clinical_clearance':False,'can_auto_dispense':False}
 
 @app.post('/api/prescriptions/batch')
@@ -111,49 +113,10 @@ class Review(BaseModel):
 
 
 def _rule_assessment(report):
-    """Optional exact-match, source-reviewed threshold assessment only."""
-    path=Path(os.getenv('MEDSAFE_REVIEWED_RULES',Path(__file__).parent.parent/'reviewed_rules_EMPTY.json'))
-    try:rules=load_reviewed_rules(path)
-    except (RuleRegistryError,ValueError,OSError):rules=[]
-    for m in report.get('medications',[]):
-        fields=m['extraction']['fields']
-        # A clinical rule MUST have separately confirmed product + indication + age population.
-        # These context fields are never silently inferred from patient demographics or OCR.
-        rule=match_rule(rules,ingredient=fields.get('medicine',''),product_identifier=fields.get('product_identifier',''),
-                        route=fields.get('route',''),indication=fields.get('indication',''),
-                        population=fields.get('population','')) if rules else None
-        parsed=number_and_unit(fields.get('dose',''))
-        freq=parse_frequency(fields.get('frequency',''))
-        result=assess_reviewed_rule(rule,dose=parsed[0] if parsed else None,
-                                    unit=parsed[1] if parsed else '',frequency=freq)
-        m['reviewed_dose_rule']=result
-        m['dose_validation_available']=result['status']!='NOT_EVALUATED'
-        age_text=fields.get('age','')
-        from .extraction import parse_age
-        age=parse_age(age_text)
-        age_check={'status':'UNABLE_TO_VALIDATE','reason':'No matched source-reviewed age interval and/or verified age'}
-        if rule is not None and age is not None and type(rule.get('min_age_years')) in (int,float) and type(rule.get('max_age_years')) in (int,float):
-            lo,hi=rule['min_age_years'],rule['max_age_years']
-            if 0<=lo<=hi<=120:
-                age_check={'status':'REVIEW_AGE_RANGE_FLAG' if not lo<=age<=hi else 'WITHIN_REVIEWED_AGE_RANGE_NOT_PROOF_OF_SAFETY',
-                           'source_url':rule['source_url'],'min_age_years':lo,'max_age_years':hi,
-                           'note':'Age-range screen only; not an individual clinical dosing recommendation'}
-        m['reviewed_age_rule']=age_check
-        from .validation import finding
-        index=report['medications'].index(m)+1
-        alerts=[]
-        if result['status']=='REVIEW_THRESHOLD_EXCEEDED':
-            alerts.append(finding('REVIEWED_RULE_THRESHOLD_EXCEEDED','CAUTION',
-                 'The confirmed amount or daily total exceeds a matching source-reviewed threshold; qualified clinician assessment is required. This is a screening flag, not an overdose diagnosis.','dose'))
-        if age_check['status']=='REVIEW_AGE_RANGE_FLAG':
-            alerts.append(finding('REVIEWED_AGE_RANGE_FLAG','CAUTION',
-                 'Patient age falls outside a matching source-reviewed age range; qualified clinician review is required.','age'))
-        for a in alerts:
-            m['issues'].append(a)
-            report['issues'].append(dict(a,medicine_index=index))
-    report['reviewed_rule_count']=len(rules)
-    report['rule_assessment_policy']='Exact reviewed product, indication, route, population, and dose-unit match required. Below a threshold never means safe.'
-    return report
+    """Backwards-compatible wrapper around the dedicated review service."""
+    from backend.app.services.review_service import assess_report
+    return assess_report(report)
+
 
 @app.post('/api/prescriptions/{pid}/review')
 def review(pid:str,payload:Review):
@@ -179,6 +142,13 @@ def report(pid:str):
     if not item['reviewer_confirmed']:raise HTTPException(409,'Transcription must be explicitly reviewed before reporting')
     return json.loads(item['report_json'])
 
+@app.get('/api/prescriptions/{pid}/audit')
+def review_audit(pid:str):
+    events=storage.audit(pid)
+    if events is None:raise HTTPException(404,'Prescription not found')
+    return {'id':pid,'events':events,'retention':'Deleted with prescription record',
+            'note':'SHA256 hashes and timestamps record text revisions without duplicating the transcript.'}
+
 @app.delete('/api/prescriptions/{pid}')
 def delete(pid:str):
     if not storage.delete(pid):raise HTTPException(404,'Prescription not found')
@@ -197,6 +167,10 @@ def research():
             'targets_not_claimed':{'medicine_name_accuracy':0.90,'dosage_accuracy':0.90,'overdose_precision_recall':0.85,'age_precision_recall':0.85},
             'reference_policy':'DailyMed/openFDA are identity/evidence sources; no dose rule is treated as approved without product, route, indication, population, source, and qualified review.',
             'clinical_clearance':False}
+
+# Versioned research-service router; register before the frontend catch-all.
+from backend.app.api.routes.research_results import router as research_results_router
+app.include_router(research_results_router)
 
 @app.get('/{path:path}')
 def frontend(path:str):

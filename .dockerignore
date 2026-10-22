@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.pytest_cache
+runtime_data
+model_cache
+02_models
+01_data
+04_results
+frontend/node_modules
+frontend/dist
+*.zip
+*.ipynb
+.env
+*.db

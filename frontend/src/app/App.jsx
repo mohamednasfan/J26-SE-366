@@ -12,9 +12,10 @@ const titles={overview:['Overview','Your prescription intelligence workspace'],n
 export default function App(){
  const [page,setPage]=useState('overview'),[menu,setMenu]=useState(false);
  const [records,setRecords]=useState([]),[stats,setStats]=useState({}),[models,setModels]=useState({}),[research,setResearch]=useState({});
+ const [historical,setHistorical]=useState({}),[benchmarks,setBenchmarks]=useState({});
  const [detail,setDetail]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[toast,setToast]=useState('');
- const refresh=useCallback(async()=>{try{const [r,s,m,q]=await Promise.all([request('/prescriptions'),request('/stats'),request('/models'),request('/research')]);
-  setRecords(r.items||[]);setStats(s||{});setModels(m||{});setResearch(q||{});
+ const refresh=useCallback(async()=>{try{const [r,s,m,q,h,b]=await Promise.all([request('/prescriptions'),request('/stats'),request('/models'),request('/research'),request('/research/historical'),request('/research/benchmarks')]);
+  setRecords(r.items||[]);setStats(s||{});setModels(m||{});setResearch(q||{});setHistorical(h||{});setBenchmarks(b||{});
  }catch(e){setError(e.message)}},[]);
  useEffect(()=>{refresh()},[refresh]);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),4300);return()=>clearTimeout(t)},[toast]);
@@ -41,7 +42,7 @@ export default function App(){
      {page==='library'&&<Library records={records} open={open} onDeleted={async()=>{await refresh();notify('Prescription permanently deleted')}} go={go}/>}
      {page==='new'&&<Upload models={models} onUploaded={async id=>{notify('Image processed. Verify the transcription before reviewing results.');await updated(id)}}/>}
      {page==='workspace'&&<PrescriptionWorkspace detail={detail} models={models} onReviewed={async()=>{notify('Transcription confirmed. Safety checks remain advisory.');await updated(detail.id)}} onDeleted={async()=>{await refresh();setDetail(null);go('library')}}/>}
-     {page==='research'&&<Research research={research} models={models}/>}
+     {page==='research'&&<Research research={research} models={models} historical={historical} benchmarks={benchmarks}/>}
      {busy&&<div className="loading-overlay" role="status">Loading prescription…</div>}
     </div>
    </main>

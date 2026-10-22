@@ -38,9 +38,48 @@ def evaluate(records):
             g=row['gold_alert'];p=row['predicted_alert']
             if type(g) is not bool or type(p) is not bool: raise ValueError('Alerts must be labeled booleans')
             tp+=int(g and p);fp+=int(not g and p);fn+=int(g and not p);tn+=int(not g and not p)
-    return {'n':len(rows),'fields':{f:{**c,'accuracy':c['correct']/c['total'] if c['total'] else None} for f,c in counts.items()},
+    age_metrics=classification_metrics(rows,'gold_age_flag','predicted_age_flag')
+    elapsed_metrics=latency_metrics(rows)
+    return {'age_alerts':age_metrics,'timing':elapsed_metrics,'n':len(rows),'fields':{f:{**c,'accuracy':c['correct']/c['total'] if c['total'] else None} for f,c in counts.items()},
             'ocr':{'CER':errors/chars if chars else None,'WER':word_errors/words if words else None,'reference_characters':chars,'reference_words':words},
             'alerts':{'tp':tp,'fp':fp,'fn':fn,'tn':tn,'precision':tp/(tp+fp) if tp+fp else None,'recall':tp/(tp+fn) if tp+fn else None}}
+
+def classification_metrics(rows, gold_key, predicted_key):
+    """Report exact binary classifications; missing paired labels never become negatives."""
+    import math
+    tp=fp=fn=tn=0
+    count=0
+    for row in rows:
+        if gold_key not in row and predicted_key not in row:
+            continue
+        if gold_key not in row or predicted_key not in row:
+            raise ValueError(f'Incomplete {gold_key}/{predicted_key} evaluation pair')
+        g,p=row[gold_key],row[predicted_key]
+        if type(g) is not bool or type(p) is not bool:
+            raise ValueError('Alert ground truth and predictions must be booleans')
+        count+=1;tp+=int(g and p);fp+=int(not g and p)
+        fn+=int(g and not p);tn+=int(not g and not p)
+    return {'n':count,'tp':tp,'fp':fp,'fn':fn,'tn':tn,
+            'accuracy':(tp+tn)/count if count else None,
+            'precision':tp/(tp+fp) if tp+fp else None,
+            'recall':tp/(tp+fn) if tp+fn else None}
+
+def latency_metrics(rows):
+    """Measured end-to-end timings, not model-loading estimates."""
+    import math,statistics
+    values=[]
+    for row in rows:
+        if 'elapsed_seconds' not in row:continue
+        value=row['elapsed_seconds']
+        if type(value) not in (int,float) or not math.isfinite(value) or value<0:
+            raise ValueError('elapsed_seconds must be a finite nonnegative number')
+        values.append(float(value))
+    values.sort()
+    if not values:return {'n':0,'median_s':None,'p95_s':None,'maximum_s':None}
+    import math
+    return {'n':len(values),'median_s':statistics.median(values),
+            'p95_s':values[math.ceil(.95*len(values))-1],
+            'maximum_s':values[-1]}
 
 def evaluate_readiness(records, *, expected_split='test'):
     """Check whether reported accuracy can legitimately support thesis acceptance.
@@ -82,6 +121,8 @@ def evaluate_verified_jsonl(path, *, expected_split='test'):
         'CER_max_10pct':ocr['CER'] is not None and ocr['CER']<=.10,
         'alert_precision_85pct':alerts['precision'] is not None and alerts['precision']>=.85,
         'alert_recall_85pct':alerts['recall'] is not None and alerts['recall']>=.85,
+        'age_accuracy_85pct':metrics['age_alerts']['accuracy'] is not None and metrics['age_alerts']['accuracy']>=.85,
+        'processing_p95_max_10s':metrics['timing']['p95_s'] is not None and metrics['timing']['n']==len(rows) and metrics['timing']['p95_s']<=10.0,
     }
     return {'readiness':readiness,'metrics':metrics,'criteria':criteria,
             'thesis_targets_met':all(criteria.values())}

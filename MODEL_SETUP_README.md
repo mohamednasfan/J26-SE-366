@@ -1,12 +1,18 @@
-# MedSafe-AI automatic model setup
+# MedSafe-AI Model Setup — TrOCR Notebook 44
 
-Windows: Double-click `INSTALL_AND_RUN_WINDOWS.bat`. Python 3.10 or 3.11 (64-bit) and internet access are recommended.
+The clinical-review application and the four-engine research adapter now use the **same fine-tuned TrOCR model from Notebook 44**. Earlier Notebook 35 or generic Microsoft pretrained weights are **not** used as an automatic fallback.
 
-Linux/macOS: `bash install_and_run_linux_mac.sh`
+## Install
+- Windows: run `INSTALL_AND_RUN_WINDOWS.bat` after preparing the checkpoint.
+- Linux/macOS: run `bash install_and_run_linux_mac.sh`.
+- Manual: `python -m pip install -r requirements-ocr.txt`.
 
-Manual: `python setup_and_verify_models.py --install`
-Cache models only: `python setup_and_verify_models.py --download-only`
+## Provide the model weights
+1. Copy the trained **Notebook 44** model folder from the original Google Drive project to `02_models/trocr_notebook44/best_model_DEVELOPMENT_ONLY`, or another local path.
+2. Set `MEDSAFE_TROCR_MODEL_DIR` to that directory (Windows PowerShell: `$env:MEDSAFE_TROCR_MODEL_DIR='C:\\path\\to\\model'`; Linux: `export MEDSAFE_TROCR_MODEL_DIR='/path/to/model'`).
+3. Run `python setup_and_verify_models.py --model-id "<path>"` to check CRAFT + TrOCR initialization and actual image inference.
+4. Review `runtime_data/ocr_model_smoke_test.json` for evidence of model-load and inference success.
 
-The installer creates `model_cache/`, installs requirements, downloads EasyOCR CRAFT and `microsoft/trocr-base-handwritten`, and runs real inference on `examples/synthetic_prescription.png`. On failure, it does not start the app and writes `runtime_data/ocr_model_smoke_test.json`.
+The checkpoint is not stored in the source repository. A package import, a directory name, or a development-validation score never proves the checkpoint is loaded correctly or that its accuracy targets have been achieved on an independent test set.
 
-First installation requires network access and several GB of disk space; CPU inference may be slow. Re-running reuses model weights. Weights are not embedded. Research only; no autonomous medical decisions.
+A missing checkpoint triggers an explicit error. Select Tesseract/EasyOCR/PaddleOCR separately if required; the chosen TrOCR engine never silently switches weights.

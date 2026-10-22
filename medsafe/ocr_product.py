@@ -1,8 +1,7 @@
-"""CRAFT (EasyOCR detection backend) + Microsoft's pretrained TrOCR.
+"""CRAFT text detection + the project's existing Notebook 44 fine-tuned TrOCR.
 
-No hardcoded text regions or medicine predictions. The model is downloaded by
-Transformers on first use unless offline mode is requested. OCR output is NEVER
-clinical proof. Errors are surfaced rather than silently using another engine.
+The research checkpoint must be mounted locally. No silent pretrained fallback,
+model download, or claim that OCR constitutes clinical verification.
 """
 from __future__ import annotations
 from functools import lru_cache
@@ -12,15 +11,11 @@ from pathlib import Path
 from PIL import Image, ImageOps
 from .ocr import decode_image, _tesseract, tesseract_executable
 
-_MODEL_RELATIVE = Path('02_models') / 'trocr_finetuned_experimental_notebook35' / 'best_model_EXPERIMENTAL'
-_MODEL_CANDIDATES = [
-    Path(os.getenv('MEDSAFE_RESEARCH_TROCR')) if os.getenv('MEDSAFE_RESEARCH_TROCR') else None,
-    Path(__file__).resolve().parents[1] / _MODEL_RELATIVE,
-    Path(__file__).resolve().parents[2] / _MODEL_RELATIVE,
-]
-_RESEARCH_MODEL = next((path for path in _MODEL_CANDIDATES if path and path.is_dir()), _MODEL_CANDIDATES[1])
-MODEL_ID = str(_RESEARCH_MODEL)
-MODEL_LOAD_ID = str(_RESEARCH_MODEL)
+from .trocr import configured_checkpoint, checkpoint_status, _load_model
+
+_RESEARCH_MODEL = configured_checkpoint()
+MODEL_ID = str(_RESEARCH_MODEL) if _RESEARCH_MODEL else 'NOTEBOOK44_CHECKPOINT_NOT_CONFIGURED'
+MODEL_LOAD_ID = MODEL_ID
 
 class OCRUnavailable(RuntimeError):
     pass
@@ -43,7 +38,7 @@ def status():
             'paddleocr': importlib.util.find_spec('paddleocr') is not None,
             'trocr': importlib.util.find_spec('transformers') is not None,
         },
-        'recognizer': MODEL_ID, 'torch_installed': torch_installed,
+        'recognizer': MODEL_ID, 'notebook44_checkpoint':checkpoint_status(), 'torch_installed': torch_installed,
         'craft_installed': importlib.util.find_spec('easyocr') is not None,
         'transformers_installed': importlib.util.find_spec('transformers') is not None,
         'tesseract_installed': tesseract_executable() is not None,
@@ -66,25 +61,18 @@ def _craft():
 
 @lru_cache(maxsize=1)
 def _recognizer():
+    """Use exactly the same Notebook 44 checkpoint as the research API."""
+    state=checkpoint_status()
+    if not state['ready_for_load']:
+        raise OCRUnavailable(
+            'Notebook 44 fine-tuned TrOCR checkpoint is unavailable. '
+            +str(state.get('reason') or state.get('missing_files') or 'Missing model files')
+        )
+    path=configured_checkpoint()
     try:
-        required = ('model.safetensors', 'config.json', 'generation_config.json')
-        missing = [name for name in required if not (_RESEARCH_MODEL / name).is_file()]
-        if missing:
-            raise OCRUnavailable(
-                'The verified MedSafe-AI research checkpoint is missing: '
-                + ', '.join(missing) + '. Expected at: ' + str(_RESEARCH_MODEL)
-            )
-        import torch
-        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-        allow_download = os.getenv('MEDSAFE_OFFLINE', '0') != '1'
-        kwargs = {'local_files_only': not allow_download}
-        processor = TrOCRProcessor.from_pretrained(MODEL_LOAD_ID, **kwargs)
-        model = VisionEncoderDecoderModel.from_pretrained(MODEL_LOAD_ID, **kwargs)
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model.to(device).eval()
-        return processor, model, device
+        return _load_model(str(path.resolve()))
     except Exception as exc:
-        raise OCRUnavailable('Pretrained TrOCR could not load. Check network access or model cache. ' + str(exc)[:250]) from exc
+        raise OCRUnavailable('Notebook 44 checkpoint loading failed: '+str(exc)[:260]) from exc
 
 
 def _boxes(image):
