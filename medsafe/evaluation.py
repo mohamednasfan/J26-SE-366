@@ -7,6 +7,7 @@ from pathlib import Path
 from difflib import SequenceMatcher
 
 FIELDS=('medicine','dose','frequency','age','route','weight','strength')
+MIN_INDEPENDENT_TEST_IMAGES=50
 def norm(s): return re.sub(r'\s+',' ',str(s or '').strip()).casefold()
 def edit_distance(a,b):
     p=list(range(len(b)+1))
@@ -123,6 +124,12 @@ def evaluate_verified_jsonl(path, *, expected_split='test'):
         'alert_recall_85pct':alerts['recall'] is not None and alerts['recall']>=.85,
         'age_accuracy_85pct':metrics['age_alerts']['accuracy'] is not None and metrics['age_alerts']['accuracy']>=.85,
         'processing_p95_max_10s':metrics['timing']['p95_s'] is not None and metrics['timing']['n']==len(rows) and metrics['timing']['p95_s']<=10.0,
+        'minimum_independent_test_images_50':len(rows)>=MIN_INDEPENDENT_TEST_IMAGES,
+        'overdose_labels_complete':alerts['n']==len(rows),
+        'age_labels_complete':metrics['age_alerts']['n']==len(rows),
+        'overdose_class_support':(alerts['tp']+alerts['fn']>=5 and alerts['tn']+alerts['fp']>=5),
+        'age_class_support':(metrics['age_alerts']['tp']+metrics['age_alerts']['fn']>=5 and
+                             metrics['age_alerts']['tn']+metrics['age_alerts']['fp']>=5),
     }
     return {'readiness':readiness,'metrics':metrics,'criteria':criteria,
             'thesis_targets_met':all(criteria.values())}
