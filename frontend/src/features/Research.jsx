@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, BookOpen, BrainCircuit, CheckCircle2, Database, Gauge, ShieldAlert, Target } from 'lucide-react';
 import {Badge,Notice} from '../components/Status.jsx';
-const titles={tesseract:['Tesseract','OCR baseline'],easyocr:['EasyOCR','Neural OCR recognizer'],paddleocr:['PaddleOCR','Document understanding'],trocr:['TrOCR + CRAFT','Handwriting recognition pipeline']};
+const titles={tesseract:['Tesseract','OCR baseline'],easyocr:['EasyOCR','Neural OCR recognizer'],paddleocr:['PaddleOCR','Document understanding'],craft_trocr:['CRAFT + TrOCR','Notebook 44 handwriting recognition']};
 const targets=[
  ['Character error rate','≤ 10%','CER'],['Medicine name accuracy','≥ 90%','Exact field match'],['Dosage field accuracy','≥ 90%','Exact field match'],
  ['Overdose precision & recall','≥ 85%','Independent alert labels'],['Age-check accuracy','≥ 85%','Independent age labels'],['Processing speed','≤ 10s','Per-image GPU benchmark']
@@ -19,15 +19,16 @@ export default function Research({research={},models={},historical={},benchmarks
     <div className="research-evidence-note">These matched word-image measurements come from the archived Kaggle-dataset experiment; they do not assess age, administered doses, or the later Notebook 44 fine-tuned TrOCR model.</div>
    </section>}
    <section className="surface"><div className="section-top"><div><h3>Current held-out benchmark</h3><p>Results appear when a human-verified test manifest has been evaluated by all selected OCR engines</p></div><Badge tone={benchmarks.status==='HUMAN_VERIFIED_TEST'?'teal':'amber'}>{benchmarks.status==='HUMAN_VERIFIED_TEST'?'Human-verified cohort':'No verified run configured'}</Badge></div>
-   {Object.keys(benchmarks.engines||{}).length>0?<div className="table-scroll"><table className="data-table"><thead><tr><th>Engine</th><th>Coverage</th><th>CER</th><th>Medicine name</th><th>95th-percentile time</th></tr></thead>
+   {Object.keys(benchmarks.engines||{}).length>0?<div className="table-scroll"><table className="data-table"><thead><tr><th>Engine</th><th>OCR coverage</th><th>CER</th><th>Medicine name</th><th>Dose alerts evaluated</th><th>Age alerts evaluated</th><th>95th-percentile time</th></tr></thead>
    <tbody>{Object.entries(benchmarks.engines).map(([name,item])=><tr key={name}><td>{name}</td><td>{(Number(item.coverage||0)*100).toFixed(0)}%</td><td>{item.metrics?.ocr?.CER!=null?(item.metrics.ocr.CER*100).toFixed(2)+'%':'Not verified'}</td>
     <td>{item.metrics?.fields?.medicine?.accuracy!=null?(item.metrics.fields.medicine.accuracy*100).toFixed(2)+'%':'Not verified'}</td>
-    <td>{item.timing?.p95_s!=null?item.timing.p95_s+' s':'—'}</td></tr>)}</tbody></table></div>:
+    <td>{item.dose_alert_evaluated_n??'—'} / {item.n_total??'—'}</td><td>{item.age_alert_evaluated_n??'—'} / {item.n_total??'—'}</td><td>{item.timing?.p95_s!=null?item.timing.p95_s+' s':'—'}</td></tr>)}</tbody></table></div>:
     <div className="research-evidence-note">No independent benchmark JSON is loaded in this installation. Run <code>python -m backend.app.research.benchmark</code> with human-reviewed test images, then configure MEDSAFE_BENCHMARK_RESULTS.</div>}
+    <div className="research-evidence-note">OCR scores are reported separately from clinical flags. Unavailable reviewed drug rules cause overdose and age assessments to abstain; those cases cannot count as correct negatives. Benchmark preprocessing: <strong>{benchmarks.preprocessing_mode||'none'}</strong>.</div>
    </section>
    <section className="surface"><div className="section-top"><div><h3>Recognition engines</h3><p>Availability reported by this running environment</p></div></div>
     <div className="research-engines">{Object.entries(titles).map(([id,[name,description]])=><div className="research-engine" key={id}>
-    <div className="research-engine-icon"><BrainCircuit size={21}/></div><div><strong>{name}</strong><p>{description}</p></div><Badge tone={installed[id]?'teal':'amber'}>{installed[id]?'Package detected':'Setup required'}</Badge></div>)}</div>
+    <div className="research-engine-icon"><BrainCircuit size={21}/></div><div><strong>{name}</strong><p>{description}</p></div><Badge tone={installed[id]?'teal':'amber'}>{installed[id]?'Ready for use':'Setup or model checkpoint required'}</Badge></div>)}</div>
    </section>
    <section className="surface"><div className="section-top"><div><h3>Thesis acceptance criteria</h3><p>Targets below are goals, not measured achievements</p></div><Target className="muted-icon" size={20}/></div>
     <div className="criteria-table table-scroll"><table className="data-table"><thead><tr><th>Metric</th><th>Acceptance criterion</th><th>Evaluation method</th><th>Evidence</th></tr></thead><tbody>
