@@ -171,9 +171,10 @@ def run_benchmark(manifest, *, engines=ENGINES, require_human=True, preprocess="
                 # the first medication represented the entire prescription.
                 if len(blocks) > 1:
                     extracted = dict(extracted)
-                    extracted["medicine"] = " | ".join(
-                        str(block["fields"].get("medicine", "")) for block in blocks
-                    )
+                    for key in ("medicine", "dose", "frequency", "strength", "route"):
+                        extracted[key] = " | ".join(
+                            str(block["fields"].get(key, "")) for block in blocks
+                        )
                 if require_human:
                     dose_flag, age_flag = _reviewed_screen(text)
                 else:
