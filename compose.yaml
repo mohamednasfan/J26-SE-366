@@ -1,0 +1,26 @@
+services:
+  medsafe:
+    build: .
+    restart: unless-stopped
+    # Deliberately NOT published to a public network; the app has no user authentication.
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      MEDSAFE_DATA_DIR: /var/lib/medsafe
+      MEDSAFE_OFFLINE: "1"
+      HF_HOME: /var/lib/medsafe/huggingface
+      EASYOCR_MODULE_PATH: /var/lib/medsafe/easyocr
+      MEDSAFE_TROCR_MODEL_DIR: /opt/medsafe/models/notebook44
+    volumes:
+      - medsafe_runtime:/var/lib/medsafe
+      # OPTIONAL: mount the verified Notebook44 checkpoint from the host
+      # - ./02_models/trocr_notebook44/best_model_DEVELOPMENT_ONLY:/opt/medsafe/models/notebook44:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  medsafe_runtime:
