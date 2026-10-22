@@ -11,6 +11,7 @@ from pathlib import Path
 import json
 import os
 import sqlite3
+import tempfile
 import uuid
 
 DATA=Path(os.getenv('MEDSAFE_DATA_DIR',Path(__file__).resolve().parent.parent/'runtime_data'))
@@ -34,6 +35,7 @@ def connect():
         original_text TEXT NOT NULL, corrected_text TEXT NOT NULL DEFAULT '',
         image_name TEXT NOT NULL, ocr_json TEXT NOT NULL, report_json TEXT NOT NULL DEFAULT '{}',
         reviewer_confirmed INTEGER NOT NULL DEFAULT 0)''')
+    db.execute('CREATE INDEX IF NOT EXISTS ix_prescriptions_created ON prescriptions(created DESC)')
     db.execute('''CREATE TABLE IF NOT EXISTS review_events (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT,
         prescription_id TEXT NOT NULL,
@@ -65,15 +67,68 @@ def create(filename,ext,engine,ocr):
             (pid,now,'OCR_CREATED_UNVERIFIED',_digest(ocr['text'])))
     return pid
 
+def create_with_image(filename, ext, engine, ocr, original_bytes):
+    """Atomically place an image and commit its record; clean both on error.
+
+    The original upload is never overwritten by preprocessing. A temporary
+    private file is moved into place before recording the prescription.
+    """
+    if not isinstance(original_bytes, bytes) or not original_bytes:
+        raise ValueError('Nonempty original image bytes are required')
+    DATA.mkdir(parents=True, exist_ok=True)
+    pid = str(uuid.uuid4())
+    now = _now()
+    target = DATA / (pid + ext)
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='wb', prefix='.medsafe-', suffix='.tmp', dir=DATA, delete=False,
+        ) as temp:
+            temp_path = Path(temp.name)
+            temp.write(original_bytes)
+            temp.flush()
+            os.fsync(temp.fileno())
+        os.replace(temp_path, target)
+        temp_path = None
+        with connect() as db:
+            db.execute('''INSERT INTO prescriptions
+                (id,created,updated,filename,status,engine,original_text,image_name,ocr_json)
+                VALUES (?,?,?,?,?,?,?,?,?)''',
+                (pid, now, now, filename, 'REVIEW_REQUIRED', engine,
+                 ocr['text'], pid+ext, json.dumps(ocr, ensure_ascii=False)))
+            db.execute('''INSERT INTO review_events
+                (prescription_id,event_time,action,after_sha256)
+                VALUES (?,?,?,?)''',
+                (pid, now, 'OCR_CREATED_UNVERIFIED', _digest(ocr['text'])))
+        return pid
+    except Exception:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+        target.unlink(missing_ok=True)
+        raise
+
+
+def counts():
+    """Accurate totals across all records, not only the paginated history."""
+    with connect() as db:
+        row = db.execute('''SELECT COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN reviewer_confirmed=1 THEN 1 ELSE 0 END),0) AS reviewed
+            FROM prescriptions''').fetchone()
+        return {'total': int(row['total']),
+                'reviewed': int(row['reviewed']),
+                'pending': int(row['total'])-int(row['reviewed'])}
+
+
 def get(pid):
     with connect() as db:
         result=db.execute('SELECT * FROM prescriptions WHERE id=?',(pid,)).fetchone()
         return dict(result) if result else None
 
-def rows():
+def rows(limit=150, offset=0):
     with connect() as db:
         rows=db.execute('''SELECT id,created,updated,filename,status,engine,reviewer_confirmed
-            FROM prescriptions ORDER BY created DESC LIMIT 150''').fetchall()
+            FROM prescriptions ORDER BY created DESC LIMIT ? OFFSET ?''',
+            (limit,offset)).fetchall()
         return [dict(row) for row in rows]
 
 def update(pid,text,report):
