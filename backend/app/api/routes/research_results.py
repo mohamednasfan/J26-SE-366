@@ -55,7 +55,7 @@ def synthetic_dataset():
 @router.get('/historical')
 def historical_baseline():
     """Bundled, previously recorded *word-level* results; never thesis release evidence."""
-    path=Path(__file__).resolve().parents[5]/'research'/'historical_baseline_780.json'
+    path=Path(__file__).resolve().parents[4]/'research'/'historical_baseline_780.json'
     try:
         document=json.loads(path.read_text(encoding='utf-8'))
         if document.get('schema')!='medsafe.historical_baseline.v1':
